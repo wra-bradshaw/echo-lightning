@@ -25,6 +25,22 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
   await expect(page.locator('#lightning-app.light')).toBeVisible();
 });
 
+test('returns home when the Lightning branding is clicked', async ({ page, serviceWorker }) => {
+  await page.bringToFront();
+  const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await setReplacementMode(serviceWorker, tabId);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#echo-lightning-host')).toBeVisible();
+
+  await page.evaluate(() => history.pushState(null, '', '/section/home-link-test'));
+  await expect(page.getByRole('heading', { name: 'Section home-link-test' })).toBeVisible();
+  await page.getByRole('link', { name: 'Echo360 Lightning' }).click();
+
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.getByRole('heading', { name: 'Your courses' })).toBeVisible();
+  await setStockMode(serviceWorker, tabId);
+});
+
 test('Use original Echo UI removes the tab-scoped rules', async ({ page, serviceWorker }) => {
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
