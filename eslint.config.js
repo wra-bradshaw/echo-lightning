@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
+import boundaries from 'eslint-plugin-boundaries';
 import prettier from 'eslint-config-prettier';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -28,6 +29,184 @@ export default defineConfig([
   { files: reactFiles, ...react.configs.flat['jsx-runtime'] },
   {
     files: ['src/**/*.{ts,tsx}'],
+    plugins: { boundaries },
+    settings: {
+      'import/resolver': {
+        node: { extensions: ['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx'] },
+      },
+      'boundaries/elements': [
+        { type: 'entrypoints', pattern: 'src/entrypoints/**' },
+        { type: 'app', pattern: 'src/app/**' },
+        { type: 'features', pattern: 'src/features/**' },
+        { type: 'domain', pattern: 'src/domain/**' },
+        { type: 'platform-extension', pattern: 'src/platform/extension/**' },
+        { type: 'platform-browser', pattern: 'src/platform/browser/**' },
+        { type: 'integration-echo', pattern: 'src/integrations/echo/**' },
+        { type: 'player-core', pattern: 'src/player/core/**' },
+        { type: 'player-react', pattern: 'src/player/react/**' },
+        { type: 'shared', pattern: 'src/shared/**' },
+      ],
+      'boundaries/files': [
+        { category: 'source', pattern: 'src/player/index.ts' },
+        { category: 'source', pattern: 'src/vite-env.d.ts' },
+      ],
+    },
+    rules: {
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'allow',
+          checkAllOrigins: true,
+          policies: [
+            {
+              from: { element: { type: 'domain' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: [
+                        'entrypoints',
+                        'app',
+                        'features',
+                        'platform-extension',
+                        'platform-browser',
+                        'integration-echo',
+                        'player-core',
+                        'player-react',
+                        'shared',
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'features' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: [
+                        'entrypoints',
+                        'app',
+                        'platform-extension',
+                        'platform-browser',
+                        'integration-echo',
+                        'player-core',
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'player-core' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: [
+                        'entrypoints',
+                        'app',
+                        'features',
+                        'platform-extension',
+                        'platform-browser',
+                        'integration-echo',
+                        'player-react',
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'player-core' } },
+              disallow: {
+                to: {
+                  module: { origin: 'external', source: ['react', 'react-dom', '@tanstack/react-query'] },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'player-react' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: [
+                        'entrypoints',
+                        'app',
+                        'features',
+                        'platform-extension',
+                        'platform-browser',
+                        'integration-echo',
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'shared' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: [
+                        'entrypoints',
+                        'app',
+                        'features',
+                        'domain',
+                        'platform-extension',
+                        'platform-browser',
+                        'integration-echo',
+                        'player-core',
+                        'player-react',
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'platform-extension' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: ['entrypoints', 'app', 'features', 'integration-echo', 'player-core', 'player-react'],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              from: { element: { type: 'platform-browser' } },
+              disallow: {
+                to: {
+                  element: {
+                    types: {
+                      anyOf: ['entrypoints', 'app', 'features', 'integration-echo', 'player-core', 'player-react'],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/entrypoints/lightning-runtime.content.ts'],
+    rules: {
+      'boundaries/no-unknown-dependencies': ['error', { require: 'element' }],
+      'boundaries/no-unknown-files': 'error',
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-globals': [
         'error',
@@ -38,30 +217,6 @@ export default defineConfig([
   {
     files: ['src/integrations/echo/transport/**/*.{ts,tsx}'],
     rules: { 'no-restricted-globals': 'off' },
-  },
-  {
-    files: ['src/features/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        { patterns: [{ group: ['**/integrations/echo/**'], message: 'Features consume domain-facing ports.' }] },
-      ],
-    },
-  },
-  {
-    files: ['src/player/core/**/*.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            { name: 'react', message: 'Player core is framework-independent.' },
-            { name: 'react-dom', message: 'Player core is framework-independent.' },
-            { name: '@tanstack/react-query', message: 'Player core is framework-independent.' },
-          ],
-        },
-      ],
-    },
   },
   {
     files: reactFiles,

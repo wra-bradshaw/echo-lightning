@@ -1,16 +1,28 @@
 import { test, expect } from './fixtures';
+import { hasLightningRules, injectRuntime, setStockMode, tabIdForUrl } from './extension-helpers';
 
 test('starts the Manifest V3 service worker', async ({ serviceWorker, extensionId }) => {
   expect(serviceWorker.url()).toBe(`chrome-extension://${extensionId}/background.js`);
 });
 
-test('opens the extension popup', async ({ page, extensionId }) => {
-  await page.goto(`chrome-extension://${extensionId}/popup.html`);
+test('keeps stock Echo untouched while Lightning is inactive', async ({ page }) => {
+  await expect(page.locator('#echo-lightning-host')).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        performance.getEntriesByType('resource').some((entry) => entry.name.includes('lightning-runtime.js')),
+      ),
+    )
+    .toBe(false);
+});
 
-  await expect(page).toHaveTitle('Default Popup Title');
-  await expect(page.getByRole('heading', { name: 'WXT + React' })).toBeVisible();
-
-  const countButton = page.getByRole('button', { name: 'count is 0' });
-  await countButton.click();
-  await expect(page.getByRole('button', { name: 'count is 1' })).toBeVisible();
+test('mounts the authenticated debug overlay without replacement rules', async ({ page, serviceWorker }) => {
+  await page.bringToFront();
+  const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await setStockMode(serviceWorker, tabId);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#echo-lightning-host')).toHaveCount(0);
+  await injectRuntime(serviceWorker, tabId);
+  await expect(page.locator('#echo-lightning-host')).toBeVisible();
+  await expect.poll(() => hasLightningRules(serviceWorker, tabId)).toBe(false);
 });

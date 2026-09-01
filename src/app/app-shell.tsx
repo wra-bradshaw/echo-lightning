@@ -1,7 +1,8 @@
 import { ArrowSquareOut, BookOpen, Moon, Sun } from '@phosphor-icons/react';
-import type { EchoNavigation } from '../echo/navigation';
-import { useEchoRoute } from '../echo/navigation';
-import type { EchoRoute } from '../echo/routes';
+import type { EchoGateway } from '../domain';
+import { parseEchoRoute, type EchoRoute } from '../integrations/echo';
+import type { NavigationStore } from '../platform/browser/navigation-store';
+import { useNavigationSnapshot } from '../platform/browser/react-navigation';
 import { Button } from '../shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../shared/ui/card';
 import { useTheme } from './theme';
@@ -46,12 +47,15 @@ function RouteContent({ route }: { route: EchoRoute }) {
 
 export function AppShell({
   navigation,
+  gateway,
   onUseOriginal,
 }: {
-  navigation: EchoNavigation;
+  navigation: NavigationStore;
+  gateway: EchoGateway;
   onUseOriginal: (url?: string) => void;
 }) {
-  const route = useEchoRoute(navigation);
+  const route = parseEchoRoute(useNavigationSnapshot(navigation));
+  void gateway;
   const { theme, setTheme } = useTheme();
   return (
     <div className="bg-background text-foreground min-h-screen">

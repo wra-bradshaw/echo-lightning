@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/entrypoints/*.{ts,tsx}",
+    "src/**/*.test.{ts,tsx}",
+    "tools/**/*.test.{ts,tsx}",
+    "tests/**/*.test.{ts,tsx}",
+    "tests/e2e/**/*.spec.{ts,tsx}"
+  ],
+  "project": ["src/**/*.{ts,tsx,css}", "tools/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
+  "ignoreBinaries": ["rbw"],
+  "exclude": ["files", "exports", "types", "dependencies", "devDependencies", "unlisted"]
+}

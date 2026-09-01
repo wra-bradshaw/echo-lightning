@@ -6,10 +6,17 @@ lerna-debug.log*
 
 node_modules
 .output
+.env
+.envrc
+.direnv
 test-results
 playwright-report
+.playwright/
+.playwright-cli/
 stats.html
 stats-*.json
+.discovery
+.discovery/
 .wxt
 web-ext.config.ts
 

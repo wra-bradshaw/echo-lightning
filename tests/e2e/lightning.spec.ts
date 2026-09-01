@@ -1,10 +1,10 @@
 import { expect, test } from './fixtures';
-import { hasLightningRules, installLightningRules, tabIdForUrl } from './extension-helpers';
+import { hasLightningRules, setReplacementMode, setStockMode, tabIdForUrl } from './extension-helpers';
 
 test('mounts an isolated Lightning shell for active tab rules', async ({ page, serviceWorker }) => {
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await installLightningRules(serviceWorker, tabId);
+  await setReplacementMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toBeVisible();
@@ -19,11 +19,12 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
 test('Use original Echo UI removes the tab-scoped rules', async ({ page, serviceWorker }) => {
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await installLightningRules(serviceWorker, tabId);
+  await setReplacementMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page
     .getByRole('button', { name: /Use original Echo UI/ })
     .first()
     .click();
   await expect.poll(() => hasLightningRules(serviceWorker, tabId)).toBe(false);
+  await setStockMode(serviceWorker, tabId);
 });

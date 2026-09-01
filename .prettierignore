@@ -1,0 +1,12 @@
+.output
+.wxt
+node_modules
+.discovery
+test-results
+playwright-report
+brief.md
+pnpm-lock.yaml
+AGENTS.md
+README.md
+.agents/**
+.agents/skills/debug-authenticated-app/agents/openai.yaml
