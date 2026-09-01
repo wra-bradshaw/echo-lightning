@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import type { LightningSettingsStore } from '../features/settings';
 import { ThemeProvider } from './theme';
 
 export function createLightningQueryClient() {
@@ -15,14 +16,18 @@ export function AppProviders({
   children,
   root,
   queryClient,
+  settingsStore,
 }: {
   children: ReactNode;
   root: HTMLElement;
   queryClient: QueryClient;
+  settingsStore?: LightningSettingsStore;
 }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider root={root}>{children}</ThemeProvider>
+      <ThemeProvider root={root} store={settingsStore}>
+        {children}
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

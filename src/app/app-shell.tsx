@@ -1,62 +1,14 @@
 import { ArrowSquareOut, BookOpen, Moon, Sun } from '@phosphor-icons/react';
-import type { EchoGateway } from '../domain';
-import { parseEchoRoute, type EchoRoute } from '../integrations/echo';
-import type { NavigationStore } from '../platform/browser/navigation-store';
-import { useNavigationSnapshot } from '../platform/browser/react-navigation';
+import { useRouter } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
+import { canonicalEchoUrl } from '../integrations/echo';
 import { Button } from '../shared/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../shared/ui/card';
 import { useTheme } from './theme';
 
-function RouteContent({ route }: { route: EchoRoute }) {
-  if (route.kind === 'courses')
-    return (
-      <>
-        <h1 className="text-2xl font-semibold">Your courses</h1>
-        <p className="text-muted-foreground">Choose a course to continue.</p>
-      </>
-    );
-  if (route.kind === 'section')
-    return (
-      <>
-        <h1 className="text-2xl font-semibold">Section</h1>
-        <p className="text-muted-foreground">Section {route.sectionId}</p>
-      </>
-    );
-  if (route.kind === 'classroom')
-    return (
-      <>
-        <h1 className="text-2xl font-semibold">Classroom</h1>
-        <p className="text-muted-foreground">Lesson {route.lessonId}</p>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recorded lecture</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">Player and transcript support will appear here.</p>
-          </CardContent>
-        </Card>
-      </>
-    );
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">This Echo360 page is not supported yet</h1>
-      <p className="text-muted-foreground">You can continue in the official interface.</p>
-    </>
-  );
-}
-
-export function AppShell({
-  navigation,
-  gateway,
-  onUseOriginal,
-}: {
-  navigation: NavigationStore;
-  gateway: EchoGateway;
-  onUseOriginal: (url?: string) => void;
-}) {
-  const route = parseEchoRoute(useNavigationSnapshot(navigation));
-  void gateway;
+export function AppShell({ children, onUseOriginal }: { children: ReactNode; onUseOriginal: (url: string) => void }) {
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const currentUrl = canonicalEchoUrl(new URL(router.history.location.href, window.location.href));
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="bg-card/95 flex h-14 items-center justify-between border-b px-4 shadow-sm backdrop-blur">
@@ -76,15 +28,13 @@ export function AppShell({
           >
             {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onUseOriginal(route.url)}>
+          <Button variant="outline" size="sm" onClick={() => onUseOriginal(currentUrl)}>
             <ArrowSquareOut className="size-4" />
             Use original Echo UI
           </Button>
         </div>
       </header>
-      <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
-        <RouteContent route={route} />
-      </main>
+      <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">{children}</main>
     </div>
   );
 }
