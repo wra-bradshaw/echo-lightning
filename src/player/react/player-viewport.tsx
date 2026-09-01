@@ -11,12 +11,15 @@ import {
   placePipStacks,
   type PipPosition,
 } from '../core/pip-placement';
+import { PLAYER_PLAYBACK_RATES, type PlayerHotkeyAction } from '../core/player-hotkeys';
 import type { PlayerAction } from '../core/player-state';
 import { synchronizeSecondaryVideo } from '../core/media-sync';
 import { useCaptionTracks } from './use-caption-tracks';
 import { useControlVisibility } from './use-control-visibility';
 import { useElementSize } from './use-element-size';
 import { useMediaClock } from './use-media-clock';
+import { useMediaVolume } from './use-media-volume';
+import { usePlayerHotkeys } from './use-player-hotkeys';
 import { usePlaybackSync } from './use-playback-sync';
 import { usePlayerState } from './use-player-state';
 import { useVideoSource } from './use-video-source';
@@ -69,6 +72,8 @@ export function PlayerViewport({
   const sourceIds = useMemo(() => sources.map((source) => source.id), [sources]);
   const { state, dispatch } = usePlayerState(sourceIds, savedSelectedIds, onSelectedIdsChange);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [volume, setVolume] = useState(1);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [playbackPosition, setPlaybackPosition] = useState(properties.positionSeconds);
   const [videoElements, setVideoElements] = useState<VideoElements>({});
@@ -76,10 +81,12 @@ export function PlayerViewport({
   const syncing = useRef(false);
   const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
   const [streamMenuOpen, setStreamMenuOpen] = useState(false);
+  const playerRef = useRef<HTMLDivElement>(null);
   const { ref: sizeRef, element: viewportElement, size: viewportSize } = useElementSize<HTMLDivElement>();
   const constraintsRef = useRef<HTMLDivElement>(null);
   const viewportRef = useCallback(
     (element: HTMLDivElement | null) => {
+      playerRef.current = element;
       sizeRef(element);
       constraintsRef.current = element;
     },
@@ -147,47 +154,81 @@ export function PlayerViewport({
     });
   }, []);
 
-  const setAllCurrentTime = useCallback((time: number) => {
-    for (const element of Object.values(videoMap.current)) {
-      if (Math.abs(element.currentTime - time) > 0.05) element.currentTime = time;
-    }
+  const getManagedVideoElements = useCallback(() => {
+    const currentElements = playerRef.current ? Array.from(playerRef.current.querySelectorAll('video')) : [];
+    const registeredElements = Object.values(videoMap.current);
+    return [...currentElements, ...registeredElements.filter((element) => !currentElements.includes(element))];
   }, []);
 
-  const setAllPlaybackRate = useCallback((rate: number) => {
-    setPlaybackRate(rate);
-    for (const element of Object.values(videoMap.current)) element.playbackRate = rate;
-  }, []);
+  const getCurrentLeaderVideo = useCallback(() => {
+    const leaderId = state.mode === 'focus' ? state.mainId : state.audioId;
+    const managedElements = getManagedVideoElements();
+    return managedElements.find((element) => element.dataset.streamId === leaderId) ?? managedElements[0] ?? leader;
+  }, [getManagedVideoElements, leader, state.audioId, state.mainId, state.mode]);
+
+  const setAllCurrentTime = useCallback(
+    (time: number) => {
+      if (!Number.isFinite(time)) return;
+      for (const element of getManagedVideoElements()) {
+        if (Math.abs(element.currentTime - time) > 0.05) element.currentTime = time;
+      }
+    },
+    [getManagedVideoElements],
+  );
+
+  const setAllPlaybackRate = useCallback(
+    (rate: number) => {
+      setPlaybackRate(rate);
+      for (const element of getManagedVideoElements()) element.playbackRate = rate;
+    },
+    [getManagedVideoElements],
+  );
+
+  const setAllVolume = useCallback(
+    (nextVolume: number) => {
+      const next = Math.min(1, Math.max(0, nextVolume));
+      setVolume(next);
+      for (const element of getManagedVideoElements()) element.volume = next;
+    },
+    [getManagedVideoElements],
+  );
 
   const togglePlayback = useCallback(() => {
     const nextPlaying = !isPlaying;
     setIsPlaying(nextPlaying);
-    for (const element of Object.values(videoMap.current)) {
+    for (const element of getManagedVideoElements()) {
       if (nextPlaying) void element.play().catch(() => setIsPlaying(false));
       else element.pause();
     }
-  }, [isPlaying]);
+  }, [getManagedVideoElements, isPlaying]);
 
-  const handlePlay = useCallback((id: string) => {
-    setIsPlaying(true);
-    if (syncing.current) return;
-    syncing.current = true;
-    for (const [otherId, element] of Object.entries(videoMap.current)) {
-      if (otherId !== id) void element.play().catch(() => undefined);
-    }
-    queueMicrotask(() => {
-      syncing.current = false;
-    });
-  }, []);
+  const handlePlay = useCallback(
+    (id: string) => {
+      setIsPlaying(true);
+      if (syncing.current) return;
+      syncing.current = true;
+      for (const element of getManagedVideoElements()) {
+        if (element.dataset.streamId !== id) void element.play().catch(() => undefined);
+      }
+      queueMicrotask(() => {
+        syncing.current = false;
+      });
+    },
+    [getManagedVideoElements],
+  );
 
-  const handlePause = useCallback((id: string) => {
-    if (syncing.current) return;
-    setIsPlaying(false);
-    syncing.current = true;
-    for (const [otherId, element] of Object.entries(videoMap.current)) if (otherId !== id) element.pause();
-    queueMicrotask(() => {
-      syncing.current = false;
-    });
-  }, []);
+  const handlePause = useCallback(
+    (id: string) => {
+      if (syncing.current) return;
+      setIsPlaying(false);
+      syncing.current = true;
+      for (const element of getManagedVideoElements()) if (element.dataset.streamId !== id) element.pause();
+      queueMicrotask(() => {
+        syncing.current = false;
+      });
+    },
+    [getManagedVideoElements],
+  );
 
   const recordPlaybackPosition = useCallback(
     (element: HTMLVideoElement) => {
@@ -219,6 +260,98 @@ export function PlayerViewport({
     [dispatch, pipSize, viewportElement],
   );
 
+  const toggleFullscreen = useCallback(() => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+      return;
+    }
+    const player = playerRef.current;
+    if (player?.requestFullscreen) void player.requestFullscreen().catch(() => undefined);
+  }, []);
+
+  const togglePictureInPicture = useCallback(() => {
+    if (document.pictureInPictureElement) {
+      void document.exitPictureInPicture().catch(() => undefined);
+      return;
+    }
+    const currentLeader = getCurrentLeaderVideo();
+    if (currentLeader?.requestPictureInPicture) void currentLeader.requestPictureInPicture().catch(() => undefined);
+  }, [getCurrentLeaderVideo]);
+
+  const seekPlaybackPosition = useCallback(
+    (nextPosition: number) => {
+      const upperBound = duration > 0 ? duration : Number.POSITIVE_INFINITY;
+      setAllCurrentTime(Math.min(upperBound, Math.max(0, nextPosition)));
+    },
+    [duration, setAllCurrentTime],
+  );
+
+  const handlePlayerHotkey = useCallback(
+    (action: PlayerHotkeyAction) => {
+      const currentLeader = getCurrentLeaderVideo();
+      const position =
+        currentLeader && Number.isFinite(currentLeader.currentTime)
+          ? currentLeader.currentTime
+          : Number.isFinite(currentTime)
+            ? currentTime
+            : 0;
+      switch (action.type) {
+        case 'seek':
+          seekPlaybackPosition(position + action.seconds);
+          break;
+        case 'seek-to':
+          seekPlaybackPosition(action.seconds);
+          break;
+        case 'set-playback-rate':
+          setAllPlaybackRate(action.rate);
+          break;
+        case 'set-volume':
+          setAllVolume(action.volume);
+          setIsMuted(false);
+          break;
+        case 'step-frame':
+          seekPlaybackPosition(position + action.seconds);
+          break;
+        case 'toggle-captions':
+          onCaptionsEnabledChange(!captionsEnabled);
+          break;
+        case 'toggle-fullscreen':
+          toggleFullscreen();
+          break;
+        case 'toggle-mute':
+          setIsMuted((muted) => !muted);
+          break;
+        case 'toggle-picture-in-picture':
+          togglePictureInPicture();
+          break;
+        case 'toggle-playback':
+          togglePlayback();
+          break;
+      }
+    },
+    [
+      captionsEnabled,
+      currentTime,
+      getCurrentLeaderVideo,
+      onCaptionsEnabledChange,
+      setAllPlaybackRate,
+      setAllVolume,
+      seekPlaybackPosition,
+      toggleFullscreen,
+      togglePictureInPicture,
+      togglePlayback,
+    ],
+  );
+
+  usePlayerHotkeys({
+    duration,
+    isPlaying,
+    onAction: handlePlayerHotkey,
+    playbackRate,
+    target: playerRef,
+    volume,
+  });
+
   const backLink = sectionId ? (
     <Link
       to="/sections/$sectionId"
@@ -245,7 +378,10 @@ export function PlayerViewport({
         data-mode={state.mode}
         tabIndex={-1}
         onPointerMove={controls.onPointerMove}
-        onPointerDown={controls.onPointerDown}
+        onPointerDown={(event) => {
+          controls.onPointerDown(event);
+          playerRef.current?.focus();
+        }}
         onKeyDown={controls.onKeyDown}
         onFocusCapture={controls.onFocusCapture}
         onBlurCapture={controls.onBlurCapture}
@@ -299,7 +435,8 @@ export function PlayerViewport({
                     initialPosition={streamInitialPosition}
                     captions={properties.captions}
                     captionsEnabled={captionsEnabled}
-                    audioEnabled={state.audioId === source.id}
+                    audioEnabled={state.audioId === source.id && !isMuted}
+                    volume={volume}
                     playbackRate={playbackRate}
                     onVideo={bindVideo}
                     onPlay={() => handlePlay(source.id)}
@@ -332,6 +469,8 @@ export function PlayerViewport({
               captionsEnabled={captionsEnabled}
               playbackRate={playbackRate}
               audioId={state.audioId}
+              isMuted={isMuted}
+              volume={volume}
               bindVideo={bindVideo}
               onPlay={handlePlay}
               onPause={handlePause}
@@ -440,7 +579,7 @@ export function PlayerViewport({
                   onChange={(event) => setAllPlaybackRate(Number(event.target.value))}
                   className="h-8 rounded-lg border border-white/20 bg-white/10 px-2 text-xs text-white outline-none"
                 >
-                  {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
+                  {PLAYER_PLAYBACK_RATES.map((rate) => (
                     <option key={rate} value={rate} className="bg-zinc-900">
                       {rate}x
                     </option>
@@ -544,6 +683,8 @@ function FocusLayout({
   captionsEnabled,
   playbackRate,
   audioId,
+  isMuted,
+  volume,
   bindVideo,
   onPlay,
   onPause,
@@ -563,6 +704,8 @@ function FocusLayout({
   captionsEnabled: boolean;
   playbackRate: number;
   audioId: string;
+  isMuted: boolean;
+  volume: number;
   bindVideo: (id: string, element: HTMLVideoElement | null) => void;
   onPlay: (id: string) => void;
   onPause: (id: string) => void;
@@ -587,7 +730,8 @@ function FocusLayout({
           initialPosition={initialPosition}
           captions={properties.captions}
           captionsEnabled={captionsEnabled}
-          audioEnabled={audioId === mainSource.id}
+          audioEnabled={audioId === mainSource.id && !isMuted}
+          volume={volume}
           playbackRate={playbackRate}
           onVideo={bindVideo}
           onPlay={() => onPlay(mainSource.id)}
@@ -616,6 +760,7 @@ function FocusLayout({
               captions={properties.captions}
               captionsEnabled={captionsEnabled}
               audioEnabled={false}
+              volume={volume}
               playbackRate={playbackRate}
               onVideo={bindVideo}
               onPlay={() => onPlay(source.id)}
@@ -709,6 +854,7 @@ function VideoStream({
   captions,
   captionsEnabled,
   audioEnabled,
+  volume,
   playbackRate,
   onVideo,
   onPlay,
@@ -726,6 +872,7 @@ function VideoStream({
   captions: PlayerProperties['captions'];
   captionsEnabled: boolean;
   audioEnabled: boolean;
+  volume: number;
   playbackRate: number;
   onVideo: (id: string, element: HTMLVideoElement | null) => void;
   onPlay: () => void;
@@ -740,6 +887,7 @@ function VideoStream({
   const [media, setMedia] = useState<HTMLVideoElement | null>(null);
   const status = useVideoSource(media, source, initialPosition);
   useCaptionTracks(media, captionsEnabled);
+  useMediaVolume(media, volume);
   const ref = useCallback(
     (element: HTMLVideoElement | null) => {
       setMedia(element);
@@ -766,11 +914,13 @@ function VideoStream({
         playsInline
         preload="metadata"
         aria-label={source.label}
+        data-stream-id={source.id}
         onPlay={onPlay}
         onPause={onPause}
         onTimeUpdate={(event) => onTimeUpdate(event.currentTarget)}
         onLoadedMetadata={(event) => {
           event.currentTarget.playbackRate = playbackRate;
+          event.currentTarget.volume = volume;
           onMetadata(event.currentTarget);
         }}
       >
