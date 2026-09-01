@@ -468,6 +468,7 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
               initialPosition={resumePosition}
               captions={properties.captions}
               captionsEnabled={captionsEnabled}
+              audioEnabled={index === 0}
               playbackRate={playbackRate}
               onVideo={bindVideo}
               onPlay={() => handlePlay(source.id)}
@@ -574,6 +575,7 @@ function VideoTile({
   initialPosition,
   captions,
   captionsEnabled,
+  audioEnabled,
   playbackRate,
   onVideo,
   onPlay,
@@ -586,6 +588,7 @@ function VideoTile({
   initialPosition: number;
   captions: PlayerProperties['captions'];
   captionsEnabled: boolean;
+  audioEnabled: boolean;
   playbackRate: number;
   onVideo: (id: string, element: HTMLVideoElement | null) => void;
   onPlay: () => void;
@@ -618,7 +621,7 @@ function VideoTile({
         ref={ref}
         className="aspect-video h-full min-h-48 w-full object-contain"
         crossOrigin="use-credentials"
-        muted
+        muted={!audioEnabled}
         playsInline
         preload="metadata"
         aria-label={source.label}

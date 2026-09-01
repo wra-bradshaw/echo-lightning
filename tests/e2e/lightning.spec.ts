@@ -172,11 +172,21 @@ test('loads the happy path from courses through a resumable multi-camera lecture
   await page.getByRole('link', { name: /Resume|Watch lecture/ }).click();
   await expect(page.getByRole('heading', { name: 'Lecture 1 — Graphs' })).toBeVisible();
   await expect(page.getByText('Resuming at 2:05')).toBeVisible();
-  await expect(page.getByTestId('camera-grid').getByLabel('Camera 1')).toBeVisible();
-  await expect(page.getByTestId('camera-grid').getByLabel('Camera 2')).toBeVisible();
-  await page.getByRole('button', { name: 'Add Camera 3' }).click();
-  await expect(page.getByTestId('camera-grid').getByLabel('Camera 3')).toBeVisible();
   const cameraGrid = page.getByTestId('camera-grid');
+  await expect(cameraGrid.getByLabel('Camera 1')).toBeVisible();
+  await expect(cameraGrid.getByLabel('Camera 2')).toBeVisible();
+  await expect
+    .poll(() =>
+      cameraGrid.locator('video').evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
+    )
+    .toEqual([false, true]);
+  await page.getByRole('button', { name: 'Add Camera 3' }).click();
+  await expect(cameraGrid.getByLabel('Camera 3')).toBeVisible();
+  await expect
+    .poll(() =>
+      cameraGrid.locator('video').evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
+    )
+    .toEqual([false, true, true]);
   await page.getByRole('button', { name: 'Move Camera 3 left' }).click();
   await expect
     .poll(() =>
