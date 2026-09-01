@@ -24,12 +24,17 @@ function browserLocation(win: Window): HistoryLocation {
       : searchIndex > 0
         ? searchIndex
         : href.length;
+  const rawState = win.history.state;
+  const state =
+    rawState && Number.isSafeInteger(rawState.__TSR_index)
+      ? rawState
+      : { ...(rawState && typeof rawState === 'object' ? rawState : {}), __TSR_index: 0 };
   return {
     href,
     pathname: href.slice(0, pathEnd),
     search: searchIndex > -1 ? href.slice(searchIndex, hashIndex > -1 ? hashIndex : undefined) : '',
     hash: hashIndex > -1 ? href.slice(hashIndex) : '',
-    state: win.history.state ?? { __TSR_index: 0 },
+    state,
   };
 }
 

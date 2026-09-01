@@ -7,7 +7,11 @@ import { canonicalEchoUrl } from '../integrations/echo/routing/routes';
 import { createLightningHistory, type LightningHistory } from '../platform/browser/navigation-history';
 import type { NavigationStore } from '../platform/browser/navigation-store';
 import type { ExtensionResponse } from '../platform/extension/messages';
-import { createLightningSettingsStore, type LightningSettingsStore, type SettingsStorage } from '../features/settings';
+import {
+  createLightningSettingsStore,
+  type LightningSettingsStore,
+  type SettingsStorageInput,
+} from '../features/settings';
 import { ErrorBoundary } from './error-boundary';
 import { createLightningRouter } from './router';
 import { AppProviders, createLightningQueryClient } from './providers';
@@ -27,8 +31,8 @@ export type LightningRuntimeOptions = {
     origin: string;
     sendMessage: (message: { type: 'useOriginal'; url: string }) => Promise<unknown>;
   }) => EchoGateway;
-  settingsStorage?: SettingsStorage;
-  settingsStoreFactory?: (storage?: SettingsStorage) => LightningSettingsStore;
+  settingsStorage?: SettingsStorageInput;
+  settingsStoreFactory?: (storage?: SettingsStorageInput) => LightningSettingsStore;
   settingsStore?: LightningSettingsStore;
   cleanup?: () => void;
 };

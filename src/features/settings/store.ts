@@ -31,6 +31,8 @@ export type BrowserStorageArea = {
   remove: (keys: string | string[]) => Promise<void>;
 };
 
+export type SettingsStorageInput = SettingsStorage | BrowserStorageArea;
+
 export const SETTINGS_STORAGE_KEY = 'lightning.settings';
 const SETTINGS_VERSION = 1;
 
@@ -72,7 +74,8 @@ function systemTheme(): Theme {
 
 export function createLightningSettingsStore(
   options: {
-    storage?: SettingsStorage;
+    storage?: SettingsStorageInput;
+    storageArea?: BrowserStorageArea;
     systemTheme?: Theme;
   } = {},
 ): LightningSettingsStore {
@@ -81,8 +84,14 @@ export function createLightningSettingsStore(
     captionsEnabled: true,
     playbackRate: 1,
   };
+  const storageInput =
+    options.storage ?? (options.storageArea ? createBrowserStorageAdapter(options.storageArea) : undefined);
   const storage =
-    options.storage ??
+    (storageInput && 'getItem' in storageInput
+      ? storageInput
+      : storageInput
+        ? createBrowserStorageAdapter(storageInput)
+        : undefined) ??
     ({
       getItem: () => null,
       setItem: () => undefined,
