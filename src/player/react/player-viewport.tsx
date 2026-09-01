@@ -395,7 +395,7 @@ export function PlayerViewport({
       >
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-0 top-0 z-50 flex items-start justify-between gap-4 bg-gradient-to-b from-black/90 via-black/65 to-black/20 p-3 transition-opacity duration-300 sm:p-5',
+            'pointer-events-none absolute inset-x-0 top-0 z-[80] flex items-start justify-between gap-4 bg-gradient-to-b from-black via-black/70 to-transparent p-3 transition-opacity duration-300 sm:p-5',
             controls.visible ? 'opacity-100' : 'opacity-0',
           )}
           data-testid="player-top-controls"
@@ -460,6 +460,7 @@ export function PlayerViewport({
                     onVideoClick={togglePlayback}
                     onSetAudio={() => dispatchPlayerAction({ type: 'set-audio', id: source.id })}
                     showAudioControl
+                    controlsVisible={controls.visible}
                   />
                 </motion.div>
               ))}
@@ -490,13 +491,14 @@ export function PlayerViewport({
               }}
               onPipDrop={handlePipDragEnd}
               dragConstraints={constraintsRef}
+              controlsVisible={controls.visible}
             />
           )}
         </div>
 
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-0 z-50 bg-gradient-to-t from-black/95 via-black/80 to-black/40 px-3 pt-14 pb-3 transition-opacity duration-300 sm:px-5 sm:pb-5',
+            'pointer-events-none absolute inset-x-0 bottom-0 z-[80] bg-gradient-to-t from-black via-black/80 to-transparent px-3 pt-16 pb-3 transition-opacity duration-300 sm:px-5 sm:pb-5',
             controls.visible ? 'opacity-100' : 'pointer-events-none opacity-0',
           )}
           data-testid="player-bottom-controls"
@@ -581,10 +583,16 @@ export function PlayerViewport({
                   aria-label="Player mode"
                 >
                   <TabsList className="bg-white/10 text-white">
-                    <TabsTrigger value="grid" className="text-white/70 data-active:bg-white/20 data-active:text-white">
+                    <TabsTrigger
+                      value="grid"
+                      className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
+                    >
                       Grid
                     </TabsTrigger>
-                    <TabsTrigger value="focus" className="text-white/70 data-active:bg-white/20 data-active:text-white">
+                    <TabsTrigger
+                      value="focus"
+                      className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
+                    >
                       Focus
                     </TabsTrigger>
                   </TabsList>
@@ -742,6 +750,7 @@ function FocusLayout({
   onMetadata,
   onPipDrop,
   dragConstraints,
+  controlsVisible,
 }: {
   mainSource: PlayerSource | undefined;
   pipSources: readonly PlayerSource[];
@@ -763,6 +772,7 @@ function FocusLayout({
   onMetadata: (id: string, element: HTMLVideoElement) => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   dragConstraints: RefObject<HTMLDivElement | null>;
+  controlsVisible: boolean;
 }) {
   if (!mainSource) return null;
   return (
@@ -788,6 +798,7 @@ function FocusLayout({
           onTimeUpdate={onTimeUpdate}
           onVideoClick={onVideoClick}
           onMetadata={(element) => onMetadata(mainSource.id, element)}
+          controlsVisible={controlsVisible}
         />
       </motion.div>
       {pipSources.map((source) => {
@@ -818,8 +829,15 @@ function FocusLayout({
               onTimeUpdate={onTimeUpdate}
               onMetadata={(element) => onMetadata(source.id, element)}
               compact
+              controlsVisible={controlsVisible}
             />
-            <span className="pointer-events-none absolute inset-x-2 bottom-2 truncate rounded bg-black/70 px-2 py-1 text-left text-xs text-white">
+            <span
+              data-testid="camera-label"
+              className={cn(
+                'pointer-events-none absolute inset-x-2 bottom-2 truncate rounded bg-black/70 px-2 py-1 text-left text-xs text-white transition-opacity duration-300',
+                controlsVisible ? 'opacity-100' : 'opacity-0',
+              )}
+            >
               {source.label}
             </span>
           </DraggablePip>
@@ -926,6 +944,7 @@ function VideoStream({
   onSetAudio,
   showAudioControl = false,
   compact = false,
+  controlsVisible = true,
 }: {
   source: PlayerSource;
   autoPlay?: boolean;
@@ -944,6 +963,7 @@ function VideoStream({
   onSetAudio?: () => void;
   showAudioControl?: boolean;
   compact?: boolean;
+  controlsVisible?: boolean;
 }) {
   const [media, setMedia] = useState<HTMLVideoElement | null>(null);
   const status = useVideoSource(media, source, initialPosition);
@@ -995,7 +1015,13 @@ function VideoStream({
         ))}
       </video>
       {!compact ? (
-        <span className="pointer-events-none absolute top-12 left-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
+        <span
+          data-testid="camera-label"
+          className={cn(
+            'pointer-events-none absolute top-12 left-2 rounded bg-black/70 px-2 py-1 text-xs text-white transition-opacity duration-300',
+            controlsVisible ? 'opacity-100' : 'opacity-0',
+          )}
+        >
           {source.label}
         </span>
       ) : null}
