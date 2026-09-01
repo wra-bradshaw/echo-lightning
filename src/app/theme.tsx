@@ -15,7 +15,7 @@ export function useThemeBinding(root?: HTMLElement): void {
   }, [root, theme]);
 }
 
-function ThemeBinding({ root }: { root?: HTMLElement }) {
+export function ThemeBinding({ root }: { root?: HTMLElement }) {
   useThemeBinding(root);
   return null;
 }
