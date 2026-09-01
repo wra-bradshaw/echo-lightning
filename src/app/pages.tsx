@@ -7,6 +7,7 @@ import { useSectionSyllabus } from '../features/sections';
 import { useLightningProgress, useLightningSettings } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { useMediaClock } from '../player/react/use-media-clock';
+import { useCaptionTracks } from '../player/react/use-caption-tracks';
 import { useVideoSource } from '../player/react/use-video-source';
 import { synchronizeSecondaryVideo } from '../player/core/media-sync';
 import type { PlaybackProgress } from '../features/settings';
@@ -595,6 +596,7 @@ function VideoTile({
 }) {
   const [media, setMedia] = useState<HTMLVideoElement | null>(null);
   const status = useVideoSource(media, source, initialPosition);
+  useCaptionTracks(media, captionsEnabled);
   const ref = useCallback(
     (element: HTMLVideoElement | null) => {
       setMedia(element);
@@ -633,7 +635,6 @@ function VideoTile({
             src={caption.src}
             srcLang={caption.language}
             label={caption.label}
-            default={captionsEnabled}
           />
         ))}
       </video>
