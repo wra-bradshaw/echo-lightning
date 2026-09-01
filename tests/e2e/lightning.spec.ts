@@ -21,7 +21,7 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
   await expect(themeButton.locator('svg')).toHaveCount(1);
   await themeButton.click();
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
-  await themeButton.click();
+  await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await expect(page.locator('#lightning-app.light')).toBeVisible();
 });
 
