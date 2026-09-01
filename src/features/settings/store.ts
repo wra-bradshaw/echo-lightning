@@ -36,7 +36,6 @@ export type BrowserStorageArea = {
 export type SettingsStorageInput = SettingsStorage | BrowserStorageArea;
 
 export const SETTINGS_STORAGE_KEY = 'lightning.settings';
-const SETTINGS_VERSION = 3;
 
 function validTheme(value: unknown): value is Theme {
   return value === 'light' || value === 'dark';
@@ -58,7 +57,7 @@ function validSelectedStreamIds(value: unknown): value is Record<string, string[
 }
 
 function validSettings(value: unknown): value is Omit<LightningSettings, 'selectedStreamIds'> & {
-  selectedStreamIds?: unknown;
+  selectedStreamIds: Record<string, string[]>;
 } {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const state = value as Partial<LightningSettings>;
@@ -66,7 +65,7 @@ function validSettings(value: unknown): value is Omit<LightningSettings, 'select
     validTheme(state.theme) &&
     typeof state.captionsEnabled === 'boolean' &&
     validPlaybackRate(state.playbackRate) &&
-    (state.selectedStreamIds === undefined || validSelectedStreamIds(state.selectedStreamIds))
+    validSelectedStreamIds(state.selectedStreamIds)
   );
 }
 
@@ -76,7 +75,7 @@ function settingsOnly(value: unknown): LightningSettings | undefined {
     theme: value.theme,
     captionsEnabled: value.captionsEnabled,
     playbackRate: value.playbackRate,
-    selectedStreamIds: validSelectedStreamIds(value.selectedStreamIds) ? value.selectedStreamIds : {},
+    selectedStreamIds: value.selectedStreamIds,
   };
 }
 
@@ -105,7 +104,6 @@ function systemTheme(): Theme {
 export function createLightningSettingsStore(
   options: {
     storage?: SettingsStorageInput;
-    storageArea?: BrowserStorageArea;
     systemTheme?: Theme;
   } = {},
 ): LightningSettingsStore {
@@ -115,8 +113,7 @@ export function createLightningSettingsStore(
     playbackRate: 1,
     selectedStreamIds: {},
   };
-  const storageInput =
-    options.storage ?? (options.storageArea ? createBrowserStorageAdapter(options.storageArea) : undefined);
+  const storageInput = options.storage;
   const storage =
     (storageInput && 'getItem' in storageInput
       ? storageInput
@@ -142,7 +139,6 @@ export function createLightningSettingsStore(
     }),
     {
       name: SETTINGS_STORAGE_KEY,
-      version: SETTINGS_VERSION,
       storage: createJSONStorage<LightningSettings>(() => storage),
       skipHydration: true,
       partialize: ({ theme, captionsEnabled, playbackRate, selectedStreamIds }) => ({
@@ -151,7 +147,6 @@ export function createLightningSettingsStore(
         playbackRate,
         selectedStreamIds,
       }),
-      migrate: (persisted) => settingsOnly(persisted) ?? defaults,
       merge: (persisted, current) => {
         const saved = settingsOnly(persisted);
         if (!saved) return current;

@@ -7,13 +7,28 @@ describe('Echo gateway', () => {
     const gateway = createEchoGateway({
       origin: 'https://echo360.net.au',
       fetcher: async () =>
-        new Response(JSON.stringify({ enrollments: [{ id: 12, name: 'Algorithms', institution: 'Example' }] }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
+        new Response(
+          JSON.stringify({
+            status: 'ok',
+            data: [
+              {
+                userSections: [
+                  { sectionId: 'section-1', courseId: 'course-1', courseName: 'Algorithms', sectionName: 'Example' },
+                ],
+                termsById: {},
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        ),
     });
 
-    await expect(gateway.getCourses()).resolves.toEqual([{ id: '12', title: 'Algorithms', institution: 'Example' }]);
+    await expect(gateway.getCourses()).resolves.toEqual([
+      { id: 'section-1', sectionId: 'section-1', courseId: 'course-1', title: 'Algorithms', institution: 'Example' },
+    ]);
   });
 
   it('saves an encoded media position as whole seconds', async () => {

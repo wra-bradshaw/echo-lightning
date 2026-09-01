@@ -6,10 +6,6 @@ export interface CancellationSignal {
   removeEventListener(type: 'abort', listener: () => void): void;
 }
 
-export interface OriginalUiPort {
-  useOriginal(url?: string): Promise<void>;
-}
-
 export interface EchoGateway {
   getCourses(options?: { signal?: CancellationSignal }): Promise<readonly CourseSummary[]>;
   getSectionSyllabus(sectionId: string, options?: { signal?: CancellationSignal }): Promise<readonly SyllabusItem[]>;

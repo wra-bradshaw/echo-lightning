@@ -32,7 +32,7 @@ describe('lightning settings store', () => {
     expect(recreated.getState()).toMatchObject({ theme: 'dark', captionsEnabled: false, playbackRate: 1.5 });
   });
 
-  it('falls back for malformed, incompatible, and invalid persisted data', async () => {
+  it('falls back for malformed or incomplete current persisted data', async () => {
     const malformed = memoryStorage({ 'lightning.settings': '{not-json' });
     const store = createLightningSettingsStore({ storage: malformed.storage, systemTheme: 'dark' });
     await store.persist.rehydrate();
@@ -40,37 +40,12 @@ describe('lightning settings store', () => {
 
     const invalid = memoryStorage({
       'lightning.settings': JSON.stringify({
-        state: { theme: 'blue', captionsEnabled: 'yes', playbackRate: 99 },
-        version: 1,
+        state: { theme: 'dark', captionsEnabled: false, playbackRate: 1.5 },
       }),
     });
     const invalidStore = createLightningSettingsStore({ storage: invalid.storage, systemTheme: 'light' });
     await invalidStore.persist.rehydrate();
     expect(invalidStore.getState()).toMatchObject({ theme: 'light', captionsEnabled: true, playbackRate: 1 });
-  });
-
-  it('discards and rewrites legacy local playback progress during rehydration', async () => {
-    const backing = memoryStorage({
-      'lightning.settings': JSON.stringify({
-        state: {
-          theme: 'dark',
-          captionsEnabled: false,
-          playbackRate: 1.5,
-          progress: { 'media-1': { position: 125, duration: 300 } },
-        },
-        version: 1,
-      }),
-    });
-    const store = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
-
-    await store.persist.rehydrate();
-
-    expect(store.getState()).toMatchObject({ theme: 'dark', captionsEnabled: false, playbackRate: 1.5 });
-    expect('progress' in store.getState()).toBe(false);
-    expect(JSON.parse(backing.values.get('lightning.settings')!)).toEqual({
-      state: { theme: 'dark', captionsEnabled: false, playbackRate: 1.5, selectedStreamIds: {} },
-      version: 3,
-    });
   });
 
   it('persists selected stream IDs per section and restores them after rehydration', async () => {

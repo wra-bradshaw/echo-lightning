@@ -8,4 +8,4 @@ export type {
   SyllabusItem,
   TranscriptCue,
 } from './models';
-export type { CancellationSignal, EchoGateway, OriginalUiPort } from './ports';
+export type { CancellationSignal, EchoGateway } from './ports';

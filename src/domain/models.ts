@@ -2,7 +2,7 @@ export type CourseSummary = {
   id: string;
   title: string;
   institution?: string;
-  sectionId?: string;
+  sectionId: string;
   courseId?: string;
   code?: string;
   term?: string;

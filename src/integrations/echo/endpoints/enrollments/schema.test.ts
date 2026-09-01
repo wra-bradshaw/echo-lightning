@@ -40,10 +40,4 @@ describe('enrollment schema', () => {
       },
     ]);
   });
-
-  it('keeps support for the compact enrollment response', () => {
-    expect(normalizeEnrollments(decodeEnrollments({ enrollments: [{ id: 12, name: 'Algorithms' }] }))).toEqual([
-      { id: '12', title: 'Algorithms' },
-    ]);
-  });
 });

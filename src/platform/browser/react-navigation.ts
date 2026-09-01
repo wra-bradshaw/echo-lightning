@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import type { NavigationStore } from './navigation-store';
+import type { LightningHistory } from './navigation-history';
 
-export function useNavigationSnapshot(navigation: NavigationStore): string {
+export function useNavigationSnapshot(navigation: LightningHistory): string {
   return useSyncExternalStore(navigation.subscribe, navigation.getSnapshot, navigation.getSnapshot);
 }

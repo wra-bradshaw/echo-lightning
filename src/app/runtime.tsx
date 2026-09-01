@@ -5,7 +5,6 @@ import type { EchoGateway } from '../domain';
 import { createAuthenticatedEchoGateway } from '../integrations/echo';
 import { canonicalEchoUrl } from '../integrations/echo/routing/routes';
 import { createLightningHistory, type LightningHistory } from '../platform/browser/navigation-history';
-import type { NavigationStore } from '../platform/browser/navigation-store';
 import type { ExtensionResponse } from '../platform/extension/messages';
 import {
   createLightningSettingsStore,
@@ -25,7 +24,6 @@ export type LightningRuntimeOptions = {
   window: Window;
   sendMessage: (message: { type: 'useOriginal' | 'routeChanged'; url?: string }) => Promise<ExtensionResponse>;
   historyFactory?: (window: Window, onNavigate: (url: string) => void) => LightningHistory;
-  navigationFactory?: (window: Window, onNavigate: (url: string) => void) => NavigationStore;
   queryClientFactory?: () => QueryClient;
   fetcher?: typeof fetch;
   gatewayFactory?: (options: {
@@ -44,7 +42,6 @@ export function createLightningRuntime(options: LightningRuntimeOptions): Lightn
   const routeChanged = (url: string) => {
     void options.sendMessage({ type: 'routeChanged', url });
   };
-  const legacyNavigation = options.navigationFactory?.(options.window, routeChanged);
   const history =
     options.historyFactory?.(options.window, routeChanged) ?? createLightningHistory(options.window, routeChanged);
   const settingsStore =
@@ -92,7 +89,6 @@ export function createLightningRuntime(options: LightningRuntimeOptions): Lightn
       reactRoot?.unmount();
       reactRoot = undefined;
       history.dispose();
-      legacyNavigation?.dispose();
       void queryClient.cancelQueries();
       queryClient.clear();
       options.cleanup?.();

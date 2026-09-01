@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NAVIGATION_EVENT } from '../src/platform/browser/navigation-store';
+import { NAVIGATION_EVENT } from '../src/platform/browser/navigation-event';
 import { installHistoryBridge } from '../src/entrypoints/history-bridge';
 
 describe('history bridge', () => {

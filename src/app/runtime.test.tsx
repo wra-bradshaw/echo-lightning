@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { createLightningHistory } from '../platform/browser/navigation-history';
 import { createLightningRuntime } from './runtime';
 
 function gateway() {
@@ -14,12 +15,9 @@ function gateway() {
 
 describe('LightningRuntime', () => {
   it('mounts once and disposes React, navigation, queries, and resources', async () => {
-    const navigation = {
-      getSnapshot: () => window.location.href,
-      subscribe: () => () => undefined,
-      navigate: vi.fn(),
-      dispose: vi.fn(),
-    };
+    window.history.replaceState(null, '', '/');
+    const history = createLightningHistory(window);
+    const disposeHistory = vi.spyOn(history, 'dispose');
     const queryClient = new QueryClient();
     const cancelQueries = vi.spyOn(queryClient, 'cancelQueries');
     const clear = vi.spyOn(queryClient, 'clear');
@@ -28,7 +26,7 @@ describe('LightningRuntime', () => {
     const runtime = createLightningRuntime({
       window,
       sendMessage: vi.fn(async () => ({ ok: true as const, mode: 'replacement' as const })),
-      navigationFactory: () => navigation,
+      historyFactory: () => history,
       queryClientFactory: () => queryClient,
       gatewayFactory: () => gateway(),
       cleanup,
@@ -41,7 +39,7 @@ describe('LightningRuntime', () => {
     runtime.dispose();
 
     expect(container).toBeEmptyDOMElement();
-    expect(navigation.dispose).toHaveBeenCalledOnce();
+    expect(disposeHistory).toHaveBeenCalled();
     expect(cancelQueries).toHaveBeenCalledOnce();
     expect(clear).toHaveBeenCalledOnce();
     expect(cleanup).toHaveBeenCalledOnce();

@@ -57,15 +57,6 @@ describe('Lightning router', () => {
     history.dispose();
   });
 
-  it('uses the course id as a section lookup fallback', async () => {
-    const { history, container } = renderRouter('/sections/section%201', [
-      { id: 'section 1', title: 'Design of Algorithms' },
-    ]);
-
-    await waitFor(() => expect(within(container).getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible());
-    history.dispose();
-  });
-
   it('uses a neutral heading when no course matches the section', async () => {
     const { history, container } = renderRouter('/sections/missing-section', [
       { id: 'course-1', sectionId: 'section 1', title: 'Design of Algorithms' },

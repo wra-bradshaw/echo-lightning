@@ -1,5 +1,5 @@
 import { defineUnlistedScript } from 'wxt/utils/define-unlisted-script';
-import { NAVIGATION_EVENT } from '../platform/browser/navigation-store';
+import { NAVIGATION_EVENT } from '../platform/browser/navigation-event';
 
 export function installHistoryBridge(target: Window = window): void {
   const marker = '__echoLightningHistoryBridgeInstalled';

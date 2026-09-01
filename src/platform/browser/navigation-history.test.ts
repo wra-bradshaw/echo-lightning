@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { NAVIGATION_EVENT } from './navigation-store';
+import { NAVIGATION_EVENT } from './navigation-event';
 import { createLightningHistory } from './navigation-history';
 
 describe('Lightning history adapter', () => {

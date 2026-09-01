@@ -56,8 +56,8 @@ function formatDate(value: string | undefined): string {
     : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function courseHref(courseId: string) {
-  return { to: '/sections/$sectionId' as const, params: { sectionId: courseId } };
+function sectionHref(sectionId: string) {
+  return { to: '/sections/$sectionId' as const, params: { sectionId } };
 }
 
 export function CoursesPage() {
@@ -115,7 +115,7 @@ export function CoursesPage() {
         {courses.map((course) => (
           <Link
             key={course.id}
-            {...courseHref(course.sectionId ?? course.id)}
+            {...sectionHref(course.sectionId)}
             className="group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             <Card className="group-hover:border-primary/50 h-full transition-colors">
@@ -165,9 +165,7 @@ export function SectionPage() {
   const { gateway } = sectionRoute.useRouteContext();
   const coursesQuery = useCourses(gateway);
   const syllabusQuery = useSectionSyllabus(gateway, sectionId);
-  const course = coursesQuery.data?.find(
-    (candidate) => candidate.sectionId === sectionId || (!candidate.sectionId && candidate.id === sectionId),
-  );
+  const course = coursesQuery.data?.find((candidate) => candidate.sectionId === sectionId);
   const lessons = useMemo(
     () =>
       [...(syllabusQuery.data ?? [])].sort((left, right) =>

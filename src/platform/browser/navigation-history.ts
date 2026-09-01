@@ -38,11 +38,7 @@ function browserLocation(win: Window): HistoryLocation {
   };
 }
 
-export function createLightningHistory(
-  win: Window = window,
-  onNavigate?: (url: string) => void,
-  options: { notifyOnSubscribe?: boolean } = {},
-): LightningHistory {
+export function createLightningHistory(win: Window = window, onNavigate?: (url: string) => void): LightningHistory {
   let disposed = false;
   let snapshot = win.location.href;
   const initialSnapshot = snapshot;
@@ -91,7 +87,7 @@ export function createLightningHistory(
   const subscribe = history.subscribe.bind(history);
   adapter.subscribe = (listener) => {
     const unsubscribeListener = subscribe(listener);
-    if ((options.notifyOnSubscribe ?? true) && snapshot !== initialSnapshot) {
+    if (snapshot !== initialSnapshot) {
       listener({ location: history.location, action: { type: 'REPLACE' } });
     }
     return unsubscribeListener;

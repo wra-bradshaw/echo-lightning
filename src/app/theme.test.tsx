@@ -39,7 +39,9 @@ describe('theme and shared UI', () => {
       </ThemeProvider>,
     );
     expect(root.dataset.theme).toBe('light');
-    resolveStorage?.(JSON.stringify({ state: { theme: 'dark', captionsEnabled: true, playbackRate: 1 }, version: 1 }));
+    resolveStorage?.(
+      JSON.stringify({ state: { theme: 'dark', captionsEnabled: true, playbackRate: 1, selectedStreamIds: {} } }),
+    );
     await waitFor(() => expect(root.dataset.theme).toBe('dark'));
   });
 });
