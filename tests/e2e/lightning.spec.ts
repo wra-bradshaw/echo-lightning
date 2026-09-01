@@ -13,14 +13,12 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
   await setReplacementMode(serviceWorker, tabId);
+  await page.emulateMedia({ colorScheme: 'dark' });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toBeVisible();
-  const themeButton = page.getByRole('button', { name: 'Switch to dark mode' });
-  await expect(themeButton.locator('svg')).toHaveCount(1);
-  await themeButton.click();
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Switch to (dark|light) mode/ })).toHaveCount(0);
   await expect
     .poll(() =>
       page.locator('#lightning-app').evaluate((app) => ({
@@ -30,8 +28,13 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
       })),
     )
     .toEqual({ background: '0 0% 7%', card: '0 0% 11%', border: '0 0% 24%' });
-  await page.getByRole('button', { name: 'Switch to light mode' }).click();
-  await expect(page.locator('#lightning-app.light')).toBeVisible();
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(page.locator('#lightning-app:not(.dark)')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('#lightning-app').evaluate((app) => getComputedStyle(app).getPropertyValue('--background').trim()),
+    )
+    .toBe('0 0% 98%');
 });
 
 test('returns home when the Lightning branding is clicked', async ({ page, serviceWorker }) => {
@@ -63,10 +66,7 @@ test('Use original Echo UI removes the tab-scoped rules', async ({ page, service
   await setStockMode(serviceWorker, tabId);
 });
 
-test('follows Echo history changes without a reload and restores persisted settings', async ({
-  page,
-  serviceWorker,
-}) => {
+test('follows Echo history changes without a reload', async ({ page, serviceWorker }) => {
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
   await setReplacementMode(serviceWorker, tabId);
@@ -76,11 +76,6 @@ test('follows Echo history changes without a reload and restores persisted setti
   await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
   await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
-  await expect(page.locator('#lightning-app.dark')).toBeVisible();
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.locator('#lightning-app.dark')).toBeVisible();
-  await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await setStockMode(serviceWorker, tabId);
 });
 

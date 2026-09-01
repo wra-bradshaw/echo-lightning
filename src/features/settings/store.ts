@@ -1,17 +1,13 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
-export type Theme = 'light' | 'dark';
-
 export type LightningSettings = {
-  theme: Theme;
   captionsEnabled: boolean;
   playbackRate: number;
   selectedStreamIds: Record<string, string[]>;
 };
 
 export type LightningSettingsState = LightningSettings & {
-  setTheme: (theme: Theme) => void;
   setCaptionsEnabled: (enabled: boolean) => void;
   setPlaybackRate: (rate: number) => void;
   setSelectedStreamIds: (sectionId: string, ids: readonly string[]) => void;
@@ -37,10 +33,6 @@ export type SettingsStorageInput = SettingsStorage | BrowserStorageArea;
 
 export const SETTINGS_STORAGE_KEY = 'lightning.settings';
 
-function validTheme(value: unknown): value is Theme {
-  return value === 'light' || value === 'dark';
-}
-
 function validPlaybackRate(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0.25 && value <= 4;
 }
@@ -56,13 +48,10 @@ function validSelectedStreamIds(value: unknown): value is Record<string, string[
   );
 }
 
-function validSettings(value: unknown): value is Omit<LightningSettings, 'selectedStreamIds'> & {
-  selectedStreamIds: Record<string, string[]>;
-} {
+function validSettings(value: unknown): value is LightningSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const state = value as Partial<LightningSettings>;
   return (
-    validTheme(state.theme) &&
     typeof state.captionsEnabled === 'boolean' &&
     validPlaybackRate(state.playbackRate) &&
     validSelectedStreamIds(state.selectedStreamIds)
@@ -72,7 +61,6 @@ function validSettings(value: unknown): value is Omit<LightningSettings, 'select
 function settingsOnly(value: unknown): LightningSettings | undefined {
   if (!validSettings(value)) return undefined;
   return {
-    theme: value.theme,
     captionsEnabled: value.captionsEnabled,
     playbackRate: value.playbackRate,
     selectedStreamIds: value.selectedStreamIds,
@@ -95,20 +83,8 @@ export function createBrowserStorageAdapter(area: BrowserStorageArea): SettingsS
   };
 }
 
-function systemTheme(): Theme {
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
-}
-
-export function createLightningSettingsStore(
-  options: {
-    storage?: SettingsStorageInput;
-    systemTheme?: Theme;
-  } = {},
-): LightningSettingsStore {
+export function createLightningSettingsStore(options: { storage?: SettingsStorageInput } = {}): LightningSettingsStore {
   const defaults: LightningSettings = {
-    theme: options.systemTheme ?? systemTheme(),
     captionsEnabled: true,
     playbackRate: 1,
     selectedStreamIds: {},
@@ -128,7 +104,6 @@ export function createLightningSettingsStore(
   const creator = persist<LightningSettingsState, [], [], LightningSettings>(
     (set) => ({
       ...defaults,
-      setTheme: (theme) => set({ theme }),
       setCaptionsEnabled: (captionsEnabled) => set({ captionsEnabled }),
       setPlaybackRate: (playbackRate) => set({ playbackRate }),
       setSelectedStreamIds: (sectionId, ids) => {
@@ -141,8 +116,7 @@ export function createLightningSettingsStore(
       name: SETTINGS_STORAGE_KEY,
       storage: createJSONStorage<LightningSettings>(() => storage),
       skipHydration: true,
-      partialize: ({ theme, captionsEnabled, playbackRate, selectedStreamIds }) => ({
-        theme,
+      partialize: ({ captionsEnabled, playbackRate, selectedStreamIds }) => ({
         captionsEnabled,
         playbackRate,
         selectedStreamIds,

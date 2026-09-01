@@ -1,47 +1,46 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Button } from '../shared/ui/button';
-import { createLightningSettingsStore, type SettingsStorage } from '../features/settings';
-import { ThemeProvider, useTheme } from './theme';
+import { ThemeProvider } from './theme';
 
-function ThemeProbe() {
-  const { theme, setTheme } = useTheme();
-  return <button onClick={() => setTheme('dark')}>{theme}</button>;
+function createSystemThemeMediaQuery(initialMatches: boolean) {
+  const listeners = new Set<() => void>();
+  const media = {
+    matches: initialMatches,
+    media: '(prefers-color-scheme: dark)',
+    addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+    setMatches(nextMatches: boolean) {
+      media.matches = nextMatches;
+      listeners.forEach((listener) => listener());
+    },
+  };
+  return media;
 }
 
 describe('theme and shared UI', () => {
-  it('applies a root theme class and renders shadcn primitives', async () => {
+  it('follows system theme changes and renders shadcn primitives', async () => {
+    const media = createSystemThemeMediaQuery(true);
+    const previousMatchMedia = window.matchMedia;
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn(() => media) });
     const root = document.createElement('div');
-    render(
-      <ThemeProvider root={root}>
-        <ThemeProbe />
-        <Button>Continue</Button>
-      </ThemeProvider>,
-    );
-    expect(root.dataset.theme).toBe('light');
-    screen.getByRole('button', { name: 'Continue' });
-    screen.getByRole('button', { name: 'light' }).click();
-    await waitFor(() => expect(root.classList.contains('dark')).toBe(true));
-  });
+    try {
+      render(
+        <ThemeProvider root={root}>
+          <Button>Continue</Button>
+        </ThemeProvider>,
+      );
+      expect(root.dataset.theme).toBe('dark');
+      expect(root).toHaveClass('dark');
+      screen.getByRole('button', { name: 'Continue' });
 
-  it('applies the system theme before asynchronous settings hydration completes', async () => {
-    let resolveStorage: ((value: string | null) => void) | undefined;
-    const storage: SettingsStorage = {
-      getItem: () => new Promise((resolve) => (resolveStorage = resolve)),
-      setItem: () => undefined,
-      removeItem: () => undefined,
-    };
-    const store = createLightningSettingsStore({ storage, systemTheme: 'light' });
-    const root = document.createElement('div');
-    render(
-      <ThemeProvider root={root} store={store}>
-        <span>ready</span>
-      </ThemeProvider>,
-    );
-    expect(root.dataset.theme).toBe('light');
-    resolveStorage?.(
-      JSON.stringify({ state: { theme: 'dark', captionsEnabled: true, playbackRate: 1, selectedStreamIds: {} } }),
-    );
-    await waitFor(() => expect(root.dataset.theme).toBe('dark'));
+      media.setMatches(false);
+      await waitFor(() => {
+        expect(root.dataset.theme).toBe('light');
+        expect(root).not.toHaveClass('dark');
+      });
+    } finally {
+      Object.defineProperty(window, 'matchMedia', { configurable: true, value: previousMatchMedia });
+    }
   });
 });

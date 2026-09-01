@@ -1,13 +1,36 @@
-import { useLayoutEffect, useMemo, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
 import { createLightningSettingsStore } from '../features/settings';
-import { SettingsProvider, useLightningSettings } from '../features/settings/react';
-import type { Theme } from '../features/settings/store';
+import { SettingsProvider } from '../features/settings/react';
 import type { LightningSettingsStore } from '../features/settings/store';
 
-export type { Theme };
+export type Theme = 'light' | 'dark';
+
+const SYSTEM_DARK_MODE_QUERY = '(prefers-color-scheme: dark)';
+
+function getSystemTheme(): Theme {
+  return typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia(SYSTEM_DARK_MODE_QUERY).matches
+    ? 'dark'
+    : 'light';
+}
+
+function subscribeToSystemTheme(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => undefined;
+  const media = window.matchMedia(SYSTEM_DARK_MODE_QUERY);
+  const listener = () => onChange();
+  media.addEventListener('change', listener);
+  return () => media.removeEventListener('change', listener);
+}
+
+const getServerTheme = (): Theme => 'light';
+
+export function useSystemTheme(): Theme {
+  return useSyncExternalStore(subscribeToSystemTheme, getSystemTheme, getServerTheme);
+}
 
 export function useThemeBinding(root?: HTMLElement): void {
-  const theme = useLightningSettings((state) => state.theme);
+  const theme = useSystemTheme();
   useLayoutEffect(() => {
     const target = root ?? document.documentElement;
     target.classList.toggle('dark', theme === 'dark');
@@ -36,10 +59,4 @@ export function ThemeProvider({
       {children}
     </SettingsProvider>
   );
-}
-
-export function useTheme() {
-  const theme = useLightningSettings((state) => state.theme);
-  const setTheme = useLightningSettings((state) => state.setTheme);
-  return { theme, setTheme };
 }

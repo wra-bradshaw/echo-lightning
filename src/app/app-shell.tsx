@@ -1,14 +1,12 @@
-import { ArrowSquareOut, BookOpen, Moon, Sun } from '@phosphor-icons/react';
+import { ArrowSquareOut, BookOpen } from '@phosphor-icons/react';
 import { Link, useRouter, useRouterState } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { canonicalEchoUrl } from '../integrations/echo';
 import { Button } from '../shared/ui/button';
-import { useTheme } from './theme';
 
 export function AppShell({ children, onUseOriginal }: { children: ReactNode; onUseOriginal: (url: string) => void }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { theme, setTheme } = useTheme();
   const currentUrl = canonicalEchoUrl(new URL(router.history.location.href, window.location.href));
   const isClassroom = pathname.includes('/classrooms/') || pathname.startsWith('/classroom/');
   if (isClassroom) {
@@ -33,19 +31,6 @@ export function AppShell({ children, onUseOriginal }: { children: ReactNode; onU
           <span className="bg-primary/10 text-primary rounded-full px-2 py-1 text-xs font-medium">
             Lightning active
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          >
-            {theme === 'dark' ? (
-              <Sun className="size-4" aria-hidden="true" />
-            ) : (
-              <Moon className="size-4" aria-hidden="true" />
-            )}
-          </Button>
           <Button variant="outline" size="sm" onClick={() => onUseOriginal(currentUrl)}>
             <ArrowSquareOut className="size-4" />
             Use original Echo UI

@@ -25,7 +25,7 @@ export default defineContentScript({
       inset: '0',
       zIndex: '2147483647',
       pointerEvents: 'auto',
-      backgroundColor: 'white',
+      backgroundColor: 'transparent',
       overflow: 'auto',
     });
     const shadow = host.attachShadow({ mode: 'open' });
@@ -34,7 +34,6 @@ export default defineContentScript({
     shadow.append(style);
     const app = document.createElement('div');
     app.id = 'lightning-app';
-    app.className = 'light';
     shadow.append(app);
     (document.documentElement || document.body).append(host);
     await injectScript('/history-bridge.js').catch(() => undefined);
