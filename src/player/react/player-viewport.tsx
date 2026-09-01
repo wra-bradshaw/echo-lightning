@@ -1,15 +1,4 @@
-import {
-  ArrowLeft,
-  CaretDown,
-  Check,
-  GearSix,
-  Pause,
-  Play,
-  SpeakerHigh,
-  SpeakerSlash,
-  Trash,
-  X,
-} from '@phosphor-icons/react';
+import { ArrowLeft, CaretDown, Check, Pause, Play, SpeakerHigh, SpeakerSlash, Trash, X } from '@phosphor-icons/react';
 import { MotionConfig, motion, useDragControls, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
@@ -395,16 +384,6 @@ export function PlayerViewport({
                   onValueCommitted={savePosition}
                 />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
-                aria-label="Toggle stream selector"
-                aria-expanded={streamMenuOpen}
-                onClick={() => setStreamMenuOpen((open) => !open)}
-              >
-                <GearSix className="size-5" />
-              </Button>
             </div>
             <div className="pointer-events-none flex flex-wrap items-center justify-between gap-2">
               <div className="pointer-events-auto flex items-center gap-2">
@@ -422,15 +401,28 @@ export function PlayerViewport({
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/15 hover:text-white"
-                  aria-label={`Streams ${state.selectedIds.length}/${sources.length}`}
-                  onClick={() => setStreamMenuOpen((open) => !open)}
-                >
-                  Streams {state.selectedIds.length}/{sources.length} <CaretDown className="size-4" />
-                </Button>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/15 hover:text-white"
+                    aria-label={`Streams ${state.selectedIds.length}/${sources.length}`}
+                    aria-expanded={streamMenuOpen}
+                    onClick={() => setStreamMenuOpen((open) => !open)}
+                  >
+                    Streams {state.selectedIds.length}/{sources.length} <CaretDown className="size-4" />
+                  </Button>
+                  {streamMenuOpen ? (
+                    <StreamManager
+                      sources={sources}
+                      selectedIds={state.selectedIds}
+                      audioId={state.audioId}
+                      onToggle={(id) => dispatchPlayerAction({ type: 'toggle', id })}
+                      onSetAudio={(id) => dispatchPlayerAction({ type: 'set-audio', id })}
+                      onClose={() => setStreamMenuOpen(false)}
+                    />
+                  ) : null}
+                </div>
               </div>
               <div className="pointer-events-auto flex items-center gap-2">
                 <Button
@@ -458,17 +450,6 @@ export function PlayerViewport({
             </div>
           </div>
         </div>
-
-        {streamMenuOpen ? (
-          <StreamManager
-            sources={sources}
-            selectedIds={state.selectedIds}
-            audioId={state.audioId}
-            onToggle={(id) => dispatchPlayerAction({ type: 'toggle', id })}
-            onSetAudio={(id) => dispatchPlayerAction({ type: 'set-audio', id })}
-            onClose={() => setStreamMenuOpen(false)}
-          />
-        ) : null}
       </div>
     </MotionConfig>
   );
@@ -492,7 +473,7 @@ function StreamManager({
   return (
     <div
       data-testid="stream-manager"
-      className="absolute top-16 right-3 z-[60] w-[min(22rem,calc(100%-1.5rem))] rounded-xl border border-white/15 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur sm:top-20 sm:right-5"
+      className="pointer-events-auto absolute bottom-full left-0 z-[60] mb-2 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-white/15 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur"
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>

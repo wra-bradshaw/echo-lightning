@@ -256,8 +256,18 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
     .toEqual([false, true, true]);
   await expect(page.getByText('Resuming at 2:05')).toBeVisible();
 
-  await page.getByRole('button', { name: /Streams 3\/3/ }).click();
+  await expect(page.getByRole('button', { name: 'Toggle stream selector' })).toHaveCount(0);
+  const streamsButton = page.getByRole('button', { name: /Streams 3\/3/ });
+  await streamsButton.click();
   const streamManager = player.getByTestId('stream-manager');
+  await expect(streamManager).toBeVisible();
+  await expect
+    .poll(async () => {
+      const managerBox = await streamManager.boundingBox();
+      const buttonBox = await streamsButton.boundingBox();
+      return managerBox && buttonBox ? managerBox.y + managerBox.height <= buttonBox.y : false;
+    })
+    .toBe(true);
   await page.getByRole('button', { name: 'Camera 3', exact: true }).click();
   await expect(page.getByRole('button', { name: /Streams 2\/3/ })).toBeVisible();
   await expect(player.getByTestId('camera-grid').locator('video')).toHaveCount(2);
