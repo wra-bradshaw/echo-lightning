@@ -205,7 +205,8 @@ test('loads the happy path and syncs resume progress with Echo360', async ({ pag
   await expect(page.getByText('Current term')).toBeVisible();
   await expect(page.getByText('Design of Algorithms')).toBeVisible();
   await page.getByRole('link', { name: /Design of Algorithms/ }).click();
-  await expect(page.getByRole('heading', { name: 'Section section-current' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
+  await expect(page.getByText('section-current', { exact: true })).toHaveCount(0);
   const watchedProgress = page.getByRole('progressbar', { name: '21% watched' });
   await expect(watchedProgress).toBeVisible();
   await expect
