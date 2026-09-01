@@ -17,7 +17,7 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toBeVisible();
-  const themeButton = page.getByRole('button', { name: 'Toggle theme' });
+  const themeButton = page.getByRole('button', { name: 'Switch to dark mode' });
   await expect(themeButton.locator('svg')).toHaveCount(1);
   await themeButton.click();
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
@@ -67,11 +67,11 @@ test('follows Echo history changes without a reload and restores persisted setti
   await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
   await expect(page.getByRole('heading', { name: 'Section history-test' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
-  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await setStockMode(serviceWorker, tabId);
 });
 
