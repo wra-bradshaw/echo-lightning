@@ -5,6 +5,7 @@ import styles from '../app/styles.css?inline';
 import { createLightningRuntime } from '../app/runtime';
 import { createBrowserStorageAdapter } from '../features/settings';
 import { isEchoHost } from '../integrations/echo';
+import { createPageFetch } from '../integrations/echo/transport/page-fetch';
 import type { ExtensionResponse } from '../platform/extension/messages';
 
 type Runtime = { sendMessage: (message: unknown) => Promise<ExtensionResponse> };
@@ -25,6 +26,7 @@ export default defineContentScript({
       zIndex: '2147483647',
       pointerEvents: 'auto',
       backgroundColor: 'white',
+      overflow: 'auto',
     });
     const shadow = host.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
@@ -36,9 +38,11 @@ export default defineContentScript({
     shadow.append(app);
     (document.documentElement || document.body).append(host);
     await injectScript('/history-bridge.js').catch(() => undefined);
+    await injectScript('/api-bridge.js').catch(() => undefined);
     const lightning = createLightningRuntime({
       window,
       sendMessage: (message) => runtimeApi.sendMessage(message),
+      fetcher: createPageFetch(window),
       settingsStorage: createBrowserStorageAdapter(browser.storage.local),
       cleanup: () => host.remove(),
     });

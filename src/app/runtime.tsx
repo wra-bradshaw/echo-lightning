@@ -27,9 +27,11 @@ export type LightningRuntimeOptions = {
   historyFactory?: (window: Window, onNavigate: (url: string) => void) => LightningHistory;
   navigationFactory?: (window: Window, onNavigate: (url: string) => void) => NavigationStore;
   queryClientFactory?: () => QueryClient;
+  fetcher?: typeof fetch;
   gatewayFactory?: (options: {
     origin: string;
     sendMessage: (message: { type: 'useOriginal'; url: string }) => Promise<unknown>;
+    fetcher: typeof fetch;
   }) => EchoGateway;
   settingsStorage?: SettingsStorageInput;
   settingsStoreFactory?: (storage?: SettingsStorageInput) => LightningSettingsStore;
@@ -53,10 +55,12 @@ export function createLightningRuntime(options: LightningRuntimeOptions): Lightn
     options.gatewayFactory?.({
       origin: options.window.location.origin,
       sendMessage: (message) => options.sendMessage(message),
+      fetcher: options.fetcher ?? options.window.fetch.bind(options.window),
     }) ??
     createAuthenticatedEchoGateway({
       origin: options.window.location.origin,
       sendMessage: (message) => options.sendMessage(message),
+      fetcher: options.fetcher ?? options.window.fetch.bind(options.window),
     });
   const originalUrl = () => canonicalEchoUrl(new URL(history.getSnapshot(), options.window.location.href));
   const router = createLightningRouter({
