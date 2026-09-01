@@ -14,3 +14,4 @@ This replacement experience does not replace Echo360's login and auth. Lightning
 - The user can click on a course and view the lectures associated with it. They can see which ones they have played, and how far through they might be.
 - The user can click on a lecture, it will play or resume from where they left off. There is a multi camera experience where the user can add or remove streams from the UI as they please. 1, 2, 3 streams it doesn't matter. They can move them around and resize them as they please.
 
+We will not strive support content that is protected by Echo360 DRM, any support is incidental.

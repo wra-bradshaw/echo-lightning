@@ -11,6 +11,8 @@
 ## Code style
 
 - Do not add code comments, except for those read by external tools.
+- useEffect is banned. Always extract into a **reusable** hook or **abstraction** that you are sure can be used by multiple (possibly unrelated!) other components, either now or in the future. Ultrathink about the name of the hook and its API, ensuring it is intuitive. 
+- Unless explicitly stated or required by something you are doing, always run your playwright headless.
 
 ## Development philosophy
 
@@ -21,4 +23,5 @@
 - Never test things that are verified already by our pnpm check.
 - pnpm check must always pass.
 - Make commits as you go using conventional, atomic commits.
+- Before implementing any component yourself, verify that you CANNOT just use a shadcn command to install a shadcn component. Always use shadcn with baseui.
 
