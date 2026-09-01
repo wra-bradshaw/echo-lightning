@@ -163,7 +163,11 @@ export function CourseDetailsPage() {
 export function SectionPage() {
   const { sectionId } = sectionRoute.useParams();
   const { gateway } = sectionRoute.useRouteContext();
+  const coursesQuery = useCourses(gateway);
   const syllabusQuery = useSectionSyllabus(gateway, sectionId);
+  const course = coursesQuery.data?.find(
+    (candidate) => candidate.sectionId === sectionId || (!candidate.sectionId && candidate.id === sectionId),
+  );
   const lessons = useMemo(
     () =>
       [...(syllabusQuery.data ?? [])].sort((left, right) =>
@@ -182,7 +186,7 @@ export function SectionPage() {
       </Link>
       <section>
         <p className="text-primary text-sm font-medium">Course recordings</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Section {sectionId}</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{course?.title || 'Course recordings'}</h1>
         <p className="text-muted-foreground mt-1">Choose a lecture to resume where you left off.</p>
       </section>
       {syllabusQuery.isLoading ? <LoadingState label="Loading lectures…" /> : null}
