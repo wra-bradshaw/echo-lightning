@@ -1,15 +1,12 @@
-import { ArrowLeft, CircleNotch, Clock, Play, Plus, Trash, VideoCamera } from '@phosphor-icons/react';
+import { ArrowLeft, CircleNotch, Clock, Play } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
-import type { PlayerProperties, PlayerSource, SyllabusItem } from '../domain';
+import { useMemo, useState, type ReactNode } from 'react';
+import type { EchoGateway, SyllabusItem } from '../domain';
 import { useCourses } from '../features/courses';
 import { getVideoMedia, getWatchedPercentage, useSectionSyllabus, useSectionVideoProgress } from '../features/sections';
+import { useLightningSettings } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
-import { useMediaClock } from '../player/react/use-media-clock';
-import { useCaptionTracks } from '../player/react/use-caption-tracks';
-import { usePlaybackSync } from '../player/react/use-playback-sync';
-import { useVideoSource } from '../player/react/use-video-source';
-import { synchronizeSecondaryVideo } from '../player/core/media-sync';
+import { PlayerViewport } from '../player/react/player-viewport';
 import {
   Badge,
   Button,
@@ -20,7 +17,6 @@ import {
   CardTitle,
   Input,
   Progress,
-  Slider,
 } from '../shared/ui';
 import { classroomRoute, courseDetailsRoute, coursesRoute, sectionClassroomRoute, sectionRoute } from './router';
 
@@ -117,7 +113,11 @@ export function CoursesPage() {
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
         {courses.map((course) => (
-          <Link key={course.id} {...courseHref(course.sectionId ?? course.id)} className="group block">
+          <Link
+            key={course.id}
+            {...courseHref(course.sectionId ?? course.id)}
+            className="group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
             <Card className="group-hover:border-primary/50 h-full transition-colors">
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
@@ -150,7 +150,7 @@ export function CourseDetailsPage() {
     <>
       <Link
         to="/courses"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-md text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       >
         <ArrowLeft className="size-4" /> Back to courses
       </Link>
@@ -180,7 +180,7 @@ export function SectionPage() {
     <>
       <Link
         to="/courses"
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
+        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-md text-sm outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       >
         <ArrowLeft className="size-4" /> Back to courses
       </Link>
@@ -261,394 +261,104 @@ export function SectionPage() {
 
 export function ClassroomPage() {
   const { lessonId } = classroomRoute.useParams();
-  const { gateway } = classroomRoute.useRouteContext();
-  return <ClassroomExperience gateway={gateway} lessonId={lessonId} />;
+  const { gateway, onUseOriginal } = classroomRoute.useRouteContext();
+  return <ClassroomExperience gateway={gateway} lessonId={lessonId} onUseOriginal={onUseOriginal} />;
 }
 
 export function SectionClassroomPage() {
   const { sectionId, lessonId } = sectionClassroomRoute.useParams();
-  const { gateway } = sectionClassroomRoute.useRouteContext();
-  return <ClassroomExperience gateway={gateway} lessonId={lessonId} sectionId={sectionId} />;
+  const { gateway, onUseOriginal } = sectionClassroomRoute.useRouteContext();
+  return (
+    <ClassroomExperience gateway={gateway} lessonId={lessonId} sectionId={sectionId} onUseOriginal={onUseOriginal} />
+  );
 }
 
 function ClassroomExperience({
   gateway,
   lessonId,
   sectionId,
+  onUseOriginal,
 }: {
-  gateway: Parameters<typeof useSectionSyllabus>[0];
+  gateway: EchoGateway;
   lessonId: string;
   sectionId?: string;
+  onUseOriginal: (url?: string) => void;
 }) {
   const syllabusQuery = useSectionSyllabus(gateway, sectionId ?? '', Boolean(sectionId));
   const lesson = syllabusQuery.data?.find((item) => item.id === lessonId);
   return (
-    <>
-      <Link
-        to={sectionId ? '/sections/$sectionId' : '/courses'}
-        params={sectionId ? { sectionId } : undefined}
-        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
-      >
-        <ArrowLeft className="size-4" /> {sectionId ? 'Back to lectures' : 'Back to courses'}
-      </Link>
-      <section>
-        <p className="text-primary text-sm font-medium">Lecture player</p>
-        <h1 className="text-3xl font-semibold tracking-tight">{lesson?.title || `Lesson ${lessonId}`}</h1>
-      </section>
-      {!sectionId ? <ErrorState label="Open a lecture from a course to load its media." /> : null}
-      {sectionId && syllabusQuery.isLoading ? <LoadingState label="Preparing lecture…" /> : null}
-      {sectionId && syllabusQuery.isError ? <ErrorState label="This lecture could not be loaded." /> : null}
+    <ClassroomState title={lesson?.title || `Lesson ${lessonId}`}>
+      {!sectionId ? <ClassroomMessage label="Open a lecture from a course to load its media." error /> : null}
+      {sectionId && syllabusQuery.isLoading ? <ClassroomMessage label="Preparing lecture…" /> : null}
+      {sectionId && syllabusQuery.isError ? <ClassroomMessage label="This lecture could not be loaded." error /> : null}
       {sectionId && !syllabusQuery.isLoading && !syllabusQuery.isError && !lesson ? (
-        <ErrorState label="This lecture is no longer available." />
+        <ClassroomMessage label="This lecture is no longer available." error />
       ) : null}
-      {lesson ? <LessonPlayer gateway={gateway} lesson={lesson} /> : null}
-    </>
+      {lesson ? (
+        <LessonPlayer gateway={gateway} lesson={lesson} sectionId={sectionId} onUseOriginal={onUseOriginal} />
+      ) : null}
+    </ClassroomState>
+  );
+}
+
+function ClassroomState({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="relative h-full min-h-0">
+      <h1 className="sr-only">{title}</h1>
+      {children}
+    </div>
   );
 }
 
 function LessonPlayer({
   gateway,
   lesson,
+  sectionId,
+  onUseOriginal,
 }: {
-  gateway: Parameters<typeof useSectionSyllabus>[0];
+  gateway: EchoGateway;
   lesson: SyllabusItem;
+  sectionId?: string;
+  onUseOriginal: (url?: string) => void;
 }) {
   const media = lesson.media.find((item) => item.available !== false && !item.audioOnly) ?? lesson.media[0];
   const playerQuery = usePlayerProperties(gateway, 'lessons', lesson.id, media?.id ?? '', Boolean(media));
+  const savedSelectedIds = useLightningSettings((settings) =>
+    sectionId ? settings.selectedStreamIds[sectionId] : undefined,
+  );
+  const setSelectedStreamIds = useLightningSettings((settings) => settings.setSelectedStreamIds);
+  const captionsEnabled = useLightningSettings((settings) => settings.captionsEnabled);
+  const setCaptionsEnabled = useLightningSettings((settings) => settings.setCaptionsEnabled);
   return (
-    <>
-      {playerQuery.isLoading ? <LoadingState label="Preparing video sources…" /> : null}
-      {playerQuery.isError ? <ErrorState label="Video sources could not be loaded for this lecture." /> : null}
-      {playerQuery.data ? <MultiCameraPlayer gateway={gateway} lesson={lesson} properties={playerQuery.data} /> : null}
-    </>
+    <div className="h-full min-h-0">
+      {playerQuery.isLoading ? <ClassroomMessage label="Preparing video sources…" /> : null}
+      {playerQuery.isError ? (
+        <ClassroomMessage label="Video sources could not be loaded for this lecture." error />
+      ) : null}
+      {playerQuery.data ? (
+        <PlayerViewport
+          gateway={gateway}
+          lesson={lesson}
+          properties={playerQuery.data}
+          sectionId={sectionId}
+          onUseOriginal={() => onUseOriginal()}
+          savedSelectedIds={savedSelectedIds}
+          onSelectedIdsChange={sectionId ? (ids) => setSelectedStreamIds(sectionId, ids) : undefined}
+          captionsEnabled={captionsEnabled}
+          onCaptionsEnabledChange={setCaptionsEnabled}
+        />
+      ) : null}
+    </div>
   );
 }
 
-function MultiCameraPlayer({
-  gateway,
-  lesson,
-  properties,
-}: {
-  gateway: Parameters<typeof useSectionSyllabus>[0];
-  lesson: SyllabusItem;
-  properties: PlayerProperties;
-}) {
-  const sources = properties.sources;
-  const [activeIds, setActiveIds] = useState(() =>
-    sources.slice(0, Math.min(2, sources.length)).map((source) => source.id),
-  );
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [captionsEnabled, setCaptionsEnabled] = useState(true);
-  const [videoElements, setVideoElements] = useState<Record<string, HTMLVideoElement>>({});
-  const [draggedId, setDraggedId] = useState<string>();
-  const videoMap = useRef(videoElements);
-  const syncing = useRef(false);
-  const resumePosition = properties.positionSeconds;
-  const sourceMap = useMemo(() => new Map(sources.map((source) => [source.id, source])), [sources]);
-  const activeSources = activeIds.flatMap((id) => {
-    const source = sourceMap.get(id);
-    return source ? [source] : [];
-  });
-  const leader = videoElements[activeIds[0] ?? ''] ?? null;
-  const currentTime = useMediaClock(leader);
-  const duration = properties.durationSeconds ?? lesson.durationSeconds ?? 0;
-  const { savePosition } = usePlaybackSync({
-    gateway,
-    mediaId: properties.mediaId,
-    leader,
-    duration,
-  });
-  const bindVideo = useCallback((id: string, element: HTMLVideoElement | null) => {
-    setVideoElements((current) => {
-      const next = { ...current };
-      if (element) next[id] = element;
-      else delete next[id];
-      videoMap.current = next;
-      return next;
-    });
-  }, []);
-
-  const setAllCurrentTime = useCallback((time: number) => {
-    for (const element of Object.values(videoMap.current)) {
-      if (Math.abs(element.currentTime - time) > 0.05) element.currentTime = time;
-    }
-  }, []);
-
-  const togglePlayback = useCallback(() => {
-    const nextPlaying = !isPlaying;
-    setIsPlaying(nextPlaying);
-    for (const element of Object.values(videoMap.current)) {
-      if (nextPlaying) void element.play().catch(() => setIsPlaying(false));
-      else element.pause();
-    }
-  }, [isPlaying]);
-
-  const handlePlay = useCallback((id: string) => {
-    setIsPlaying(true);
-    if (syncing.current) return;
-    syncing.current = true;
-    for (const [otherId, element] of Object.entries(videoMap.current))
-      if (otherId !== id) void element.play().catch(() => undefined);
-    queueMicrotask(() => {
-      syncing.current = false;
-    });
-  }, []);
-
-  const handlePause = useCallback((id: string) => {
-    if (syncing.current) return;
-    setIsPlaying(false);
-    syncing.current = true;
-    for (const [otherId, other] of Object.entries(videoMap.current)) if (otherId !== id) other.pause();
-    queueMicrotask(() => {
-      syncing.current = false;
-    });
-  }, []);
-
-  const moveSource = (id: string, direction: -1 | 1) => {
-    setActiveIds((current) => {
-      const index = current.indexOf(id);
-      const nextIndex = index + direction;
-      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
-      const next = [...current];
-      [next[index], next[nextIndex]] = [next[nextIndex]!, next[index]!];
-      return next;
-    });
-  };
-
-  const removeSource = (id: string) =>
-    setActiveIds((current) => (current.length > 1 ? current.filter((sourceId) => sourceId !== id) : current));
-  const addSource = (id: string) => setActiveIds((current) => (current.includes(id) ? current : [...current, id]));
-  const onDrop = (targetId: string) => {
-    if (!draggedId || draggedId === targetId) return;
-    setActiveIds((current) => {
-      const without = current.filter((id) => id !== draggedId);
-      const index = without.indexOf(targetId);
-      without.splice(index < 0 ? without.length : index, 0, draggedId);
-      return without;
-    });
-    setDraggedId(undefined);
-  };
-
+function ClassroomMessage({ label, error = false }: { label: string; error?: boolean }) {
   return (
-    <Card className="overflow-visible">
-      <CardHeader className="border-b">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <VideoCamera className="text-primary size-5" /> Multi-camera player
-            </CardTitle>
-            <CardDescription className="mt-1">
-              Drag cameras to reorder them. Resize a tile from its corner.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {sources
-              .filter((source) => !activeIds.includes(source.id))
-              .map((source) => (
-                <Button key={source.id} variant="outline" size="sm" onClick={() => addSource(source.id)}>
-                  <Plus className="size-4" /> Add {source.label}
-                </Button>
-              ))}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4 p-4">
-        <div className="grid gap-3 md:grid-cols-2" data-testid="camera-grid">
-          {activeSources.map((source, index) => (
-            <VideoTile
-              key={source.id}
-              source={source}
-              initialPosition={resumePosition}
-              captions={properties.captions}
-              captionsEnabled={captionsEnabled}
-              audioEnabled={index === 0}
-              playbackRate={playbackRate}
-              onVideo={bindVideo}
-              onPlay={() => handlePlay(source.id)}
-              onPause={() => handlePause(source.id)}
-              onTimeUpdate={(element) => {
-                if (index !== 0 && leader) synchronizeSecondaryVideo(leader, element);
-              }}
-              onDragStart={() => setDraggedId(source.id)}
-              onDrop={() => onDrop(source.id)}
-            />
-          ))}
-        </div>
-        <div className="bg-muted/20 space-y-3 rounded-lg border p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="default" size="sm" onClick={togglePlayback}>
-              {isPlaying ? 'Pause' : 'Play'}
-            </Button>
-            <span className="text-muted-foreground text-sm tabular-nums">
-              {formatDuration(currentTime)} / {formatDuration(duration)}
-            </span>
-            <select
-              aria-label="Playback speed"
-              value={playbackRate}
-              onChange={(event) => {
-                const rate = Number(event.target.value);
-                setPlaybackRate(rate);
-                for (const element of Object.values(videoMap.current)) element.playbackRate = rate;
-              }}
-              className="bg-background h-8 rounded-lg border px-2 text-sm"
-            >
-              {[0.75, 1, 1.25, 1.5, 2].map((rate) => (
-                <option key={rate} value={rate}>
-                  {rate}x
-                </option>
-              ))}
-            </select>
-            <Button
-              variant={captionsEnabled ? 'secondary' : 'outline'}
-              size="sm"
-              onClick={() => setCaptionsEnabled((enabled) => !enabled)}
-            >
-              Captions {captionsEnabled ? 'on' : 'off'}
-            </Button>
-          </div>
-          <Slider
-            aria-label="Lecture timeline"
-            value={[Math.min(currentTime, duration || currentTime)]}
-            min={0}
-            max={duration || 1}
-            step={1}
-            onValueChange={(value) => {
-              const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-              if (Number.isFinite(next)) setAllCurrentTime(next);
-            }}
-            onValueCommitted={() => savePosition()}
-          />
-          <div className="flex flex-wrap gap-2">
-            {activeSources.map((source, index) => (
-              <span key={source.id} className="inline-flex items-center gap-1 text-xs">
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={`Move ${source.label} left`}
-                  disabled={index === 0}
-                  onClick={() => moveSource(source.id, -1)}
-                >
-                  ←
-                </Button>
-                <span>{source.label}</span>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={`Move ${source.label} right`}
-                  disabled={index === activeSources.length - 1}
-                  onClick={() => moveSource(source.id, 1)}
-                >
-                  →
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={`Remove ${source.label}`}
-                  disabled={activeSources.length === 1}
-                  onClick={() => removeSource(source.id)}
-                >
-                  <Trash className="size-3" />
-                </Button>
-              </span>
-            ))}
-          </div>
-        </div>
-        {resumePosition > 0 ? (
-          <p className="text-muted-foreground text-xs">
-            Resuming at {formatDuration(resumePosition)}. Progress is saved to Echo360.
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function VideoTile({
-  source,
-  initialPosition,
-  captions,
-  captionsEnabled,
-  audioEnabled,
-  playbackRate,
-  onVideo,
-  onPlay,
-  onPause,
-  onTimeUpdate,
-  onDragStart,
-  onDrop,
-}: {
-  source: PlayerSource;
-  initialPosition: number;
-  captions: PlayerProperties['captions'];
-  captionsEnabled: boolean;
-  audioEnabled: boolean;
-  playbackRate: number;
-  onVideo: (id: string, element: HTMLVideoElement | null) => void;
-  onPlay: () => void;
-  onPause: (element: HTMLVideoElement) => void;
-  onTimeUpdate: (element: HTMLVideoElement) => void;
-  onDragStart: () => void;
-  onDrop: () => void;
-}) {
-  const [media, setMedia] = useState<HTMLVideoElement | null>(null);
-  const status = useVideoSource(media, source, initialPosition);
-  useCaptionTracks(media, captionsEnabled);
-  const ref = useCallback(
-    (element: HTMLVideoElement | null) => {
-      setMedia(element);
-      onVideo(source.id, element);
-    },
-    [onVideo, source.id],
-  );
-  return (
-    <div
-      data-testid="camera-tile"
-      className="group relative min-h-48 overflow-auto rounded-lg border bg-black"
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={onDrop}
-      style={{ resize: 'both' }}
-    >
-      <video
-        ref={ref}
-        className="aspect-video h-full min-h-48 w-full object-contain"
-        crossOrigin="use-credentials"
-        muted={!audioEnabled}
-        playsInline
-        preload="metadata"
-        aria-label={source.label}
-        onPlay={onPlay}
-        onPause={(event) => onPause(event.currentTarget)}
-        onTimeUpdate={(event) => onTimeUpdate(event.currentTarget)}
-        onRateChange={(event) => {
-          event.currentTarget.playbackRate = playbackRate;
-        }}
-      >
-        {captions.map((caption) => (
-          <track
-            key={caption.src}
-            kind={caption.kind ?? 'captions'}
-            src={caption.src}
-            srcLang={caption.language}
-            label={caption.label}
-          />
-        ))}
-      </video>
-      <span className="pointer-events-none absolute top-2 left-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
-        {source.label}
-      </span>
-      {status === 'loading' ? (
-        <span className="absolute right-2 bottom-2 rounded bg-black/70 px-2 py-1 text-xs text-white">
-          Loading source…
-        </span>
-      ) : null}
-      {status === 'error' ? (
-        <span className="bg-destructive absolute right-2 bottom-2 rounded px-2 py-1 text-xs text-white">
-          Source unavailable
-        </span>
-      ) : null}
+    <div className="bg-background text-foreground flex h-full items-center justify-center p-6">
+      <div className="flex items-center gap-3 text-sm">
+        {!error ? <CircleNotch className="size-4 animate-spin" /> : null}
+        <span className={error ? 'text-destructive' : 'text-muted-foreground'}>{label}</span>
+      </div>
     </div>
   );
 }

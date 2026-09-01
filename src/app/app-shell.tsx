@@ -1,5 +1,5 @@
 import { ArrowSquareOut, BookOpen, Moon, Sun } from '@phosphor-icons/react';
-import { Link, useRouter } from '@tanstack/react-router';
+import { Link, useRouter, useRouterState } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { canonicalEchoUrl } from '../integrations/echo';
 import { Button } from '../shared/ui/button';
@@ -7,8 +7,17 @@ import { useTheme } from './theme';
 
 export function AppShell({ children, onUseOriginal }: { children: ReactNode; onUseOriginal: (url: string) => void }) {
   const router = useRouter();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { theme, setTheme } = useTheme();
   const currentUrl = canonicalEchoUrl(new URL(router.history.location.href, window.location.href));
+  const isClassroom = pathname.includes('/classrooms/') || pathname.startsWith('/classroom/');
+  if (isClassroom) {
+    return (
+      <div className="bg-background text-foreground h-dvh min-h-0 overflow-hidden">
+        <main className="h-full min-h-0">{children}</main>
+      </div>
+    );
+  }
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="bg-card/95 flex h-14 items-center justify-between border-b px-4 shadow-sm backdrop-blur">

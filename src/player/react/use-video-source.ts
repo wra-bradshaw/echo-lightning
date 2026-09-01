@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { injectScript } from 'wxt/utils/inject-script';
 import type { PlayerSource } from '../../domain';
 import {
@@ -36,13 +36,19 @@ export function useVideoSource(
   initialPosition = 0,
 ): VideoSourceStatus {
   const [status, setStatus] = useState<VideoSourceStatus>('idle');
+  const initialPositionRef = useRef(initialPosition);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    initialPositionRef.current = initialPosition;
+  }, [initialPosition]);
+
+  useLayoutEffect(() => {
     if (!media || !source) return;
     let active = true;
     const applyInitialPosition = () => {
-      if (initialPosition > 0 && Number.isFinite(media.duration) && media.duration > 0) {
-        media.currentTime = Math.min(initialPosition, media.duration);
+      const position = initialPositionRef.current;
+      if (position > 0 && Number.isFinite(media.duration) && media.duration > 0) {
+        media.currentTime = Math.min(position, media.duration);
       }
     };
     const onMetadata = () => applyInitialPosition();
@@ -77,7 +83,7 @@ export function useVideoSource(
       media.removeAttribute('src');
       media.load();
     };
-  }, [initialPosition, media, source]);
+  }, [media, source]);
 
   return !media || !source ? 'idle' : status === 'idle' ? 'loading' : status;
 }

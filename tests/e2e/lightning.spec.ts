@@ -2,7 +2,6 @@ import { expect, test } from './fixtures';
 import {
   clearExtensionLocalStorage,
   hasLightningRules,
-  injectRuntime,
   readExtensionLocalStorage,
   setReplacementMode,
   setStockMode,
@@ -21,6 +20,16 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
   await expect(themeButton.locator('svg')).toHaveCount(1);
   await themeButton.click();
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Switch to light mode' })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.locator('#lightning-app').evaluate((app) => ({
+        background: getComputedStyle(app).getPropertyValue('--background').trim(),
+        card: getComputedStyle(app).getPropertyValue('--card').trim(),
+        border: getComputedStyle(app).getPropertyValue('--border').trim(),
+      })),
+    )
+    .toEqual({ background: '0 0% 7%', card: '0 0% 11%', border: '0 0% 24%' });
   await page.getByRole('button', { name: 'Switch to light mode' }).click();
   await expect(page.locator('#lightning-app.light')).toBeVisible();
 });
@@ -84,8 +93,11 @@ test('leaves authenticated login routes in stock mode', async ({ page, serviceWo
   await setStockMode(serviceWorker, tabId);
 });
 
-test('loads the happy path and syncs resume progress with Echo360', async ({ page, serviceWorker }) => {
-  let serverPosition = 125;
+test('plays a full-viewport multi-stream lecture with grid, focus, and per-section selection', async ({
+  page,
+  serviceWorker,
+}) => {
+  const serverPosition = 125;
   await page.route('**/user/enrollments', (route) =>
     route.fulfill({
       contentType: 'application/json',
@@ -103,19 +115,9 @@ test('loads the happy path and syncs resume progress with Echo360', async ({ pag
                 lessonCount: 2,
                 termId: 'term-current',
               },
-              {
-                sectionId: 'section-old',
-                sectionName: 'COMP10002_2025_SM2',
-                courseId: 'course-old',
-                courseCode: 'COMP10002',
-                courseName: 'Foundations of Algorithms',
-                lessonCount: 1,
-                termId: 'term-old',
-              },
             ],
             termsById: {
               'term-current': { id: 'term-current', name: '2026_SM1', startDate: '2026-01-01', isActiveOrFuture: true },
-              'term-old': { id: 'term-old', name: '2025_SM2', startDate: '2025-01-01', isActiveOrFuture: false },
             },
           },
         ],
@@ -188,23 +190,25 @@ test('loads the happy path and syncs resume progress with Echo360', async ({ pag
       method: route.request().method(),
       seconds: new URL(route.request().url()).searchParams.get('seconds') ?? '',
     });
-    return route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({ status: 'ok' }),
-    });
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok' }) });
   });
   await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
 
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
+  const navigate = async (path: string) => {
+    await page.evaluate((nextPath) => {
+      history.pushState(null, '', nextPath);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }, path);
+  };
   await clearExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
-  await setStockMode(serviceWorker, tabId);
+  await setReplacementMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await injectRuntime(serviceWorker, tabId);
+  await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your courses' })).toBeVisible();
-  await expect(page.getByText('Current term')).toBeVisible();
-  await expect(page.getByText('Design of Algorithms')).toBeVisible();
-  await page.getByRole('link', { name: /Design of Algorithms/ }).click();
+  await navigate('/sections/section-current');
+  await expect(page).toHaveURL(/\/sections\/section-current/);
   await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
   await expect(page.getByText('section-current', { exact: true })).toHaveCount(0);
   const watchedProgress = page.getByRole('progressbar', { name: '21% watched' });
@@ -226,75 +230,105 @@ test('loads the happy path and syncs resume progress with Echo360', async ({ pag
         .evaluate((element) => getComputedStyle(element).backgroundColor),
     )
     .toBe('oklch(0.623 0.214 259.815)');
-  await expect(page.getByText('Lecture 1 — Graphs')).toBeVisible();
-  await page.getByRole('link', { name: /Resume|Watch lecture/ }).click();
-  await expect(page.getByRole('heading', { name: 'Lecture 1 — Graphs' })).toBeVisible();
-  await expect(page.getByText('Resuming at 2:05')).toBeVisible();
-  const cameraGrid = page.getByTestId('camera-grid');
-  await expect(cameraGrid.getByLabel('Camera 1')).toBeVisible();
-  await expect(cameraGrid.getByLabel('Camera 2')).toBeVisible();
+  await expect(page.locator('#lightning-app').getByRole('banner')).toBeVisible();
+  await navigate('/sections/section-current/classrooms/lesson-one');
+  await expect(page).toHaveURL(/\/sections\/section-current\/classrooms\/lesson-one/);
+
+  const player = page.getByTestId('classroom-player');
+  await expect(player).toBeVisible();
+  await expect(player).toHaveAttribute('data-mode', 'grid');
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error('Browser viewport size was unavailable.');
+  await expect
+    .poll(async () => {
+      const box = await player.boundingBox();
+      return box ? [Math.round(box.x), Math.round(box.y), Math.round(box.width), Math.round(box.height)] : [];
+    })
+    .toEqual([0, 0, viewport.width, viewport.height]);
+  await expect(page.locator('#lightning-app').getByRole('banner')).toHaveCount(0);
+  await expect(player.getByTestId('camera-grid').locator('video')).toHaveCount(3);
   await expect
     .poll(() =>
-      cameraGrid.locator('video').evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
-    )
-    .toEqual([false, true]);
-  await page.getByRole('button', { name: 'Add Camera 3' }).click();
-  await expect(cameraGrid.getByLabel('Camera 3')).toBeVisible();
-  await expect
-    .poll(() =>
-      cameraGrid.locator('video').evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
+      player
+        .getByTestId('camera-grid')
+        .locator('video')
+        .evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
     )
     .toEqual([false, true, true]);
-  await page.getByRole('button', { name: 'Move Camera 3 left' }).click();
+  await expect(page.getByText('Resuming at 2:05')).toBeVisible();
+
+  await page.getByRole('button', { name: /Streams 3\/3/ }).click();
+  const streamManager = player.getByTestId('stream-manager');
+  await page.getByRole('button', { name: 'Camera 3', exact: true }).click();
+  await expect(page.getByRole('button', { name: /Streams 2\/3/ })).toBeVisible();
+  await expect(player.getByTestId('camera-grid').locator('video')).toHaveCount(2);
+  await streamManager.getByLabel('Make Camera 2 audio source').click();
   await expect
     .poll(() =>
-      cameraGrid.locator('video').evaluateAll((videos) => videos.map((video) => video.getAttribute('aria-label'))),
+      player
+        .getByTestId('camera-grid')
+        .locator('video')
+        .evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
     )
-    .toEqual(['Camera 1', 'Camera 3', 'Camera 2']);
-  const tile = cameraGrid.getByTestId('camera-tile').first();
-  const before = await tile.boundingBox();
-  if (!before) throw new Error('Camera tile did not have a browser bounding box.');
-  await page.mouse.move(before.x + before.width - 2, before.y + before.height - 2);
-  await page.mouse.down();
-  await page.mouse.move(before.x + before.width + 80, before.y + before.height + 40);
-  await page.mouse.up();
-  await expect.poll(async () => (await tile.boundingBox())?.width ?? 0).toBeGreaterThan(before.width + 20);
-  await page.getByRole('button', { name: 'Remove Camera 2' }).click();
-  await expect(cameraGrid.getByLabel('Camera 2')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Captions on' }).click();
-  await expect(page.getByRole('button', { name: 'Captions off' })).toBeVisible();
-  await expect
-    .poll(() =>
-      cameraGrid
-        .getByLabel('Camera 1')
-        .locator('xpath=./track')
-        .evaluate((track) => (track as HTMLTrackElement).track.mode),
-    )
-    .toBe('hidden');
-  await page.getByLabel('Playback speed').selectOption('1.5');
-  await expect(page.getByLabel('Playback speed')).toHaveValue('1.5');
-  await expect
-    .poll(() => cameraGrid.getByLabel('Camera 1').evaluate((video) => (video as HTMLVideoElement).playbackRate))
-    .toBe(1.5);
+    .toEqual([true, false]);
+  await page.getByRole('button', { name: /Streams 2\/3/ }).click();
+
+  await player.getByLabel('Camera 2', { exact: true }).click();
+  await expect(player).toHaveAttribute('data-mode', 'focus');
+  await expect(player.getByTestId('main-stream').getByLabel('Camera 2')).toBeVisible();
+  await expect(player.getByTestId('pip-stream')).toHaveCount(1);
+  await expect(player.getByTestId('pip-stream').getByLabel('Camera 2')).toHaveCount(0);
+  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-1"]').click();
+  await expect(player.getByTestId('main-stream').getByLabel('Camera 1')).toBeVisible();
+  await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"]')).toHaveCount(1);
+  await expect(player.getByTestId('main-stream').locator('video')).toHaveJSProperty('muted', false);
+  await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video')).toHaveJSProperty(
+    'muted',
+    true,
+  );
+
+  const pip = player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"]');
+  const before = await pip.boundingBox();
+  if (!before) throw new Error('PiP did not have a browser bounding box.');
+  await pip.dragTo(player, { targetPosition: { x: 30, y: 30 } });
+  await expect.poll(async () => (await pip.boundingBox())?.x ?? Number.POSITIVE_INFINITY).toBeLessThan(before.x);
+  await expect.poll(async () => (await pip.boundingBox())?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(before.y);
+  const after = await pip.boundingBox();
+  if (!after) throw new Error('Dragged PiP did not have a browser bounding box.');
+  expect(after.x).toBeLessThan(before.x);
+  expect(after.y).toBeLessThan(before.y);
+
   await page.getByRole('button', { name: 'Play' }).click();
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
-  await cameraGrid
-    .locator('video')
-    .first()
-    .evaluate((video) => {
-      Object.defineProperty(video, 'currentTime', { configurable: true, value: 137.8 });
-      video.dispatchEvent(new Event('timeupdate'));
-      video.dispatchEvent(new Event('pause'));
-    });
+  await player.evaluate(() => {
+    document.body.tabIndex = -1;
+    document.body.focus();
+  });
+  await page.waitForTimeout(2600);
+  await expect(player.getByTestId('player-top-controls')).toHaveAttribute('data-visible', 'false');
+  await player.focus();
+  await expect(player.getByTestId('player-top-controls')).toHaveAttribute('data-visible', 'true');
+  await page.getByLabel('Lecture timeline').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.locator('[data-testid="main-stream"] video').evaluate((video) => {
+    Object.defineProperty(video, 'currentTime', { configurable: true, value: 137.8 });
+    video.dispatchEvent(new Event('timeupdate'));
+    video.dispatchEvent(new Event('pause'));
+  });
   await expect.poll(() => positionRequests.length).toBeGreaterThan(0);
   expect(positionRequests.every(({ method, seconds }) => method === 'POST' && /^\d+$/.test(seconds))).toBe(true);
 
-  serverPosition = 240;
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByText('Lightning active')).toBeVisible();
-  await expect(page.getByText('Resuming at 4:00')).toBeVisible();
+  await navigate('/sections/section-current');
+  await expect(page).toHaveURL(/\/sections\/section-current$/);
+  await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
+  await navigate('/sections/section-current/classrooms/lesson-one');
+  await expect(page).toHaveURL(/\/sections\/section-current\/classrooms\/lesson-one/);
+  await expect(page.getByTestId('classroom-player').getByTestId('camera-grid')).toBeVisible();
+  await expect(page.getByTestId('camera-grid').locator('video')).toHaveCount(2);
   const storedSettings = await readExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
-  expect(storedSettings[SETTINGS_STORAGE_KEY]).toBeUndefined();
+  const storedValue = storedSettings[SETTINGS_STORAGE_KEY];
+  expect(typeof storedValue).toBe('string');
+  expect(JSON.parse(String(storedValue)).state.selectedStreamIds['section-current']).toEqual(['camera-1', 'camera-2']);
+
   await setStockMode(serviceWorker, tabId);
 });

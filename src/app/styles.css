@@ -52,6 +52,10 @@
   background: hsl(var(--background));
 }
 
+#lightning-app {
+  min-height: 100%;
+}
+
 :host(.dark),
 #lightning-app.dark {
   --background: 0 0% 7%;

@@ -68,8 +68,21 @@ describe('lightning settings store', () => {
     expect(store.getState()).toMatchObject({ theme: 'dark', captionsEnabled: false, playbackRate: 1.5 });
     expect('progress' in store.getState()).toBe(false);
     expect(JSON.parse(backing.values.get('lightning.settings')!)).toEqual({
-      state: { theme: 'dark', captionsEnabled: false, playbackRate: 1.5 },
-      version: 2,
+      state: { theme: 'dark', captionsEnabled: false, playbackRate: 1.5, selectedStreamIds: {} },
+      version: 3,
     });
+  });
+
+  it('persists selected stream IDs per section and restores them after rehydration', async () => {
+    const backing = memoryStorage();
+    const store = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
+
+    store.getState().setSelectedStreamIds('section-a', ['camera-2']);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const recreated = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
+    await recreated.persist.rehydrate();
+
+    expect(recreated.getState().selectedStreamIds).toEqual({ 'section-a': ['camera-2'] });
   });
 });
