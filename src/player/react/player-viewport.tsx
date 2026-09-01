@@ -1,7 +1,9 @@
 import { ArrowLeft, CaretDown, Check, Pause, Play, SpeakerHigh, SpeakerSlash, Trash, X } from '@phosphor-icons/react';
-import { MotionConfig, motion, useDragControls, type PanInfo } from 'motion/react';
+import { MotionConfig, motion, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
-import { useCallback, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { usePipDrag } from './use-pip-drag';
+import { usePipResize } from './use-pip-resize';
 import type { EchoGateway, PlayerProperties, PlayerSource, SyllabusItem } from '../../domain';
 import { calculateGridLayout } from '../core/grid-layout';
 import {
@@ -10,6 +12,7 @@ import {
   placePipInNearestCorner,
   placePipStacks,
   type PipPosition,
+  type PipSize,
 } from '../core/pip-placement';
 import {
   MAX_PLAYER_VOLUME,
@@ -89,12 +92,10 @@ export function PlayerViewport({
   const [streamMenuOpen, setStreamMenuOpen] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
   const { ref: sizeRef, element: viewportElement, size: viewportSize } = useElementSize<HTMLDivElement>();
-  const constraintsRef = useRef<HTMLDivElement>(null);
   const viewportRef = useCallback(
     (element: HTMLDivElement | null) => {
       playerRef.current = element;
       sizeRef(element);
-      constraintsRef.current = element;
     },
     [sizeRef],
   );
@@ -137,13 +138,27 @@ export function PlayerViewport({
     aspectRatios: activeSources.map((source) => aspectRatios[source.id]),
     gap: 12,
   });
-  const pipSize = useMemo(
+  const [pipSizeOverride, setPipSizeOverride] = useState<PipSize | null>(null);
+  const defaultPipSize = useMemo(
     () => ({
       width: Math.min(320, Math.max(148, viewportSize.width * 0.22)),
       height: Math.min(180, Math.max(83, (viewportSize.width * 0.22 * 9) / 16)),
     }),
     [viewportSize.width],
   );
+  const pipSize = useMemo(() => {
+    if (!pipSizeOverride) return defaultPipSize;
+    const maxWidthByViewport = Math.max(148, viewportSize.width - 32);
+    const maxHeightByViewport = Math.max(83, viewportSize.height - 32);
+    const maxWidthByHeight = (maxHeightByViewport * 16) / 9;
+    const maxWidth = Math.min(480, maxWidthByViewport, maxWidthByHeight);
+    const width = Math.max(148, Math.min(maxWidth, pipSizeOverride.width));
+    const height = (width * 9) / 16;
+    return { width, height };
+  }, [defaultPipSize, pipSizeOverride, viewportSize.height, viewportSize.width]);
+  const handlePipResize = useCallback((size: PipSize) => {
+    setPipSizeOverride(size);
+  }, []);
   const pipIds = state.selectedIds.filter((id) => id !== state.mainId);
   const pipPositions = useMemo(
     () => placePipStacks(pipIds, state.pipPositions, viewportSize, pipSize, 16, 12),
@@ -252,19 +267,17 @@ export function PlayerViewport({
     (id: string, _event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       const viewport = viewportElement?.getBoundingClientRect();
       if (!viewport) return;
-      const clamped = clampPipPosition(
-        {
-          x: info.point.x - viewport.left - pipSize.width / 2,
-          y: info.point.y - viewport.top - pipSize.height / 2,
-        },
-        { width: viewport.width, height: viewport.height },
-        pipSize,
-        16,
-      );
+      const position = pipPositions[id] ?? { corner: 'bottom-right' as const, index: 0 };
+      const initial = getPipCoordinates(position, { width: viewport.width, height: viewport.height }, pipSize, 16, 12);
+      const nextPoint = {
+        x: initial.x + info.offset.x,
+        y: initial.y + info.offset.y,
+      };
+      const clamped = clampPipPosition(nextPoint, { width: viewport.width, height: viewport.height }, pipSize, 16);
       const snapped = placePipInNearestCorner(clamped, { width: viewport.width, height: viewport.height }, pipSize, 16);
       dispatch({ type: 'set-pip-position', id, position: snapped });
     },
-    [dispatch, pipSize, viewportElement],
+    [dispatch, pipPositions, pipSize, viewportElement],
   );
 
   const toggleFullscreen = useCallback(() => {
@@ -490,7 +503,7 @@ export function PlayerViewport({
                 }
               }}
               onPipDrop={handlePipDragEnd}
-              dragConstraints={constraintsRef}
+              onResize={handlePipResize}
               controlsVisible={controls.visible}
             />
           )}
@@ -749,7 +762,7 @@ function FocusLayout({
   onVideoClick,
   onMetadata,
   onPipDrop,
-  dragConstraints,
+  onResize,
   controlsVisible,
 }: {
   mainSource: PlayerSource | undefined;
@@ -771,7 +784,7 @@ function FocusLayout({
   onVideoClick: () => void;
   onMetadata: (id: string, element: HTMLVideoElement) => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
-  dragConstraints: RefObject<HTMLDivElement | null>;
+  onResize: (size: PipSize) => void;
   controlsVisible: boolean;
 }) {
   if (!mainSource) return null;
@@ -810,9 +823,10 @@ function FocusLayout({
             source={source}
             coordinates={coordinates}
             pipSize={pipSize}
+            viewportSize={viewportSize}
             onVideoClick={onVideoClick}
             onPipDrop={onPipDrop}
-            dragConstraints={dragConstraints}
+            onResize={onResize}
           >
             <VideoStream
               source={source}
@@ -851,77 +865,57 @@ function DraggablePip({
   source,
   coordinates,
   pipSize,
+  viewportSize,
   onVideoClick,
   onPipDrop,
-  dragConstraints,
+  onResize,
   children,
 }: {
   source: PlayerSource;
   coordinates: { x: number; y: number };
   pipSize: { width: number; height: number };
+  viewportSize: { width: number; height: number };
   onVideoClick: () => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
-  dragConstraints: RefObject<HTMLDivElement | null>;
+  onResize: (size: PipSize) => void;
   children: React.ReactNode;
 }) {
-  const dragControls = useDragControls();
-  const dragged = useRef(false);
-  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const { isDragging, displayCoordinates, handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel } =
+    usePipDrag(coordinates, pipSize, viewportSize, onPipDrop, source.id, onVideoClick);
+  const resizeHandle = usePipResize(pipSize, viewportSize, onResize);
+
   const style: CSSProperties = {
-    left: coordinates.x,
-    top: coordinates.y,
+    left: displayCoordinates.x,
+    top: displayCoordinates.y,
     width: pipSize.width,
     height: pipSize.height,
   };
 
   return (
     <motion.div
-      layout
+      layout={!isDragging}
       layoutId={`stream-${source.id}`}
       className="absolute z-[70] overflow-hidden rounded-xl border-2 border-white/70 bg-black shadow-2xl focus-within:ring-2 focus-within:ring-white"
       style={style}
       data-testid="pip-stream"
       data-stream-id={source.id}
-      drag
-      dragControls={dragControls}
-      dragListener={false}
-      dragConstraints={dragConstraints}
-      dragMomentum={false}
-      dragElastic={0.08}
-      whileDrag={{ scale: 1.03, zIndex: 70 }}
-      onPointerDown={(event) => {
-        dragged.current = false;
-        pointerStart.current = { x: event.clientX, y: event.clientY };
-        dragControls.start(event);
-      }}
-      onPointerMove={(event) => {
-        const start = pointerStart.current;
-        if (!start) return;
-        if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) dragged.current = true;
-      }}
-      onPointerUp={(event) => {
-        const start = pointerStart.current;
-        pointerStart.current = null;
-        if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) dragged.current = true;
-        if (dragged.current) {
-          dragged.current = false;
-          return;
-        }
-        onVideoClick();
-      }}
-      onPointerCancel={() => {
-        pointerStart.current = null;
-        dragged.current = false;
-      }}
-      onDragStart={() => {
-        dragged.current = true;
-      }}
-      onDragEnd={(event, info) => {
-        dragged.current = true;
-        onPipDrop(source.id, event, info);
-      }}
+      animate={isDragging ? { scale: 1.03, zIndex: 70 } : { scale: 1, zIndex: 70 }}
+      transition={isDragging ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
     >
       {children}
+      <div
+        data-testid="pip-resize-handle"
+        className="absolute right-0 bottom-0 z-10 flex h-6 w-6 cursor-nwse-resize touch-none items-end justify-end p-1"
+        onPointerDown={resizeHandle.onPointerDown}
+        onPointerMove={resizeHandle.onPointerMove}
+        onPointerUp={resizeHandle.onPointerUp}
+      >
+        <div className="h-3 w-3 rounded-sm border-r-2 border-b-2 border-white/80 opacity-70" />
+      </div>
     </motion.div>
   );
 }
