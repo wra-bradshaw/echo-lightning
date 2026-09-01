@@ -1,16 +1,37 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
+export type PipSize = { width: number; height: number };
+
+export type PlayerMode = 'grid' | 'focus';
+
+export type PipPosition = {
+  corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  index: number;
+};
+
+export type PlayerState = {
+  mode: PlayerMode;
+  selectedIds: string[];
+  mainId: string;
+  audioId: string;
+  pipPositions: Record<string, PipPosition>;
+};
+
 export type LightningSettings = {
   captionsEnabled: boolean;
   playbackRate: number;
   selectedStreamIds: Record<string, string[]>;
+  playerStateBySection: Record<string, PlayerState>;
+  pipSizeBySection: Record<string, PipSize>;
 };
 
 export type LightningSettingsState = LightningSettings & {
   setCaptionsEnabled: (enabled: boolean) => void;
   setPlaybackRate: (rate: number) => void;
   setSelectedStreamIds: (sectionId: string, ids: readonly string[]) => void;
+  setPlayerState: (sectionId: string, state: PlayerState) => void;
+  setPipSize: (sectionId: string, size: PipSize) => void;
 };
 
 export type LightningSettingsStore = StoreApi<LightningSettingsState> & {
@@ -48,14 +69,67 @@ function validSelectedStreamIds(value: unknown): value is Record<string, string[
   );
 }
 
+function validPipSize(value: unknown): value is PipSize {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const size = value as Partial<PipSize>;
+  return (
+    typeof size.width === 'number' &&
+    Number.isFinite(size.width) &&
+    typeof size.height === 'number' &&
+    Number.isFinite(size.height) &&
+    size.width >= 100 &&
+    size.width <= 800 &&
+    size.height >= 50 &&
+    size.height <= 500
+  );
+}
+
+function validPipPosition(value: unknown): value is PipPosition {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const pos = value as Partial<PipPosition>;
+  return (
+    (pos.corner === 'top-left' ||
+      pos.corner === 'top-right' ||
+      pos.corner === 'bottom-left' ||
+      pos.corner === 'bottom-right') &&
+    typeof pos.index === 'number' &&
+    Number.isInteger(pos.index) &&
+    pos.index >= 0 &&
+    pos.index < 20
+  );
+}
+
+function validPlayerState(value: unknown): value is PlayerState {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const state = value as Partial<PlayerState>;
+  if (state.mode !== 'grid' && state.mode !== 'focus') return false;
+  if (!Array.isArray(state.selectedIds) || !state.selectedIds.every((id) => typeof id === 'string')) return false;
+  if (typeof state.mainId !== 'string' || typeof state.audioId !== 'string') return false;
+  if (!state.pipPositions || typeof state.pipPositions !== 'object' || Array.isArray(state.pipPositions)) return false;
+  return Object.values(state.pipPositions).every(validPipPosition);
+}
+
+function validPlayerStateBySection(value: unknown): value is Record<string, PlayerState> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([k, v]) => Boolean(k) && validPlayerState(v));
+}
+
+function validPipSizeBySection(value: unknown): value is Record<string, PipSize> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([k, v]) => Boolean(k) && validPipSize(v));
+}
+
 function validSettings(value: unknown): value is LightningSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const state = value as Partial<LightningSettings>;
-  return (
+  const hasBase =
     typeof state.captionsEnabled === 'boolean' &&
     validPlaybackRate(state.playbackRate) &&
-    validSelectedStreamIds(state.selectedStreamIds)
-  );
+    validSelectedStreamIds(state.selectedStreamIds);
+  if (!hasBase) return false;
+  if (state.playerStateBySection !== undefined && !validPlayerStateBySection(state.playerStateBySection)) return false;
+  if (state.pipSizeBySection !== undefined && !validPipSizeBySection(state.pipSizeBySection)) return false;
+  return true;
 }
 
 function settingsOnly(value: unknown): LightningSettings | undefined {
@@ -64,6 +138,8 @@ function settingsOnly(value: unknown): LightningSettings | undefined {
     captionsEnabled: value.captionsEnabled,
     playbackRate: value.playbackRate,
     selectedStreamIds: value.selectedStreamIds,
+    playerStateBySection: (value.playerStateBySection as Record<string, PlayerState>) ?? {},
+    pipSizeBySection: (value.pipSizeBySection as Record<string, PipSize>) ?? {},
   };
 }
 
@@ -88,6 +164,8 @@ export function createLightningSettingsStore(options: { storage?: SettingsStorag
     captionsEnabled: true,
     playbackRate: 1,
     selectedStreamIds: {},
+    playerStateBySection: {},
+    pipSizeBySection: {},
   };
   const storageInput = options.storage;
   const storage =
@@ -111,15 +189,25 @@ export function createLightningSettingsStore(options: { storage?: SettingsStorag
         const uniqueIds = ids.filter((id, index) => Boolean(id) && ids.indexOf(id) === index);
         set((state) => ({ selectedStreamIds: { ...state.selectedStreamIds, [sectionId]: uniqueIds } }));
       },
+      setPlayerState: (sectionId, playerState) => {
+        if (!sectionId || !validPlayerState(playerState)) return;
+        set((state) => ({ playerStateBySection: { ...state.playerStateBySection, [sectionId]: playerState } }));
+      },
+      setPipSize: (sectionId, pipSize) => {
+        if (!sectionId || !validPipSize(pipSize)) return;
+        set((state) => ({ pipSizeBySection: { ...state.pipSizeBySection, [sectionId]: pipSize } }));
+      },
     }),
     {
       name: SETTINGS_STORAGE_KEY,
       storage: createJSONStorage<LightningSettings>(() => storage),
       skipHydration: true,
-      partialize: ({ captionsEnabled, playbackRate, selectedStreamIds }) => ({
+      partialize: ({ captionsEnabled, playbackRate, selectedStreamIds, playerStateBySection, pipSizeBySection }) => ({
         captionsEnabled,
         playbackRate,
         selectedStreamIds,
+        playerStateBySection,
+        pipSizeBySection,
       }),
       merge: (persisted, current) => {
         const saved = settingsOnly(persisted);

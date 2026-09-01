@@ -309,6 +309,14 @@ function LessonPlayer({
     sectionId ? settings.selectedStreamIds[sectionId] : undefined,
   );
   const setSelectedStreamIds = useLightningSettings((settings) => settings.setSelectedStreamIds);
+  const savedPlayerState = useLightningSettings((settings) =>
+    sectionId ? settings.playerStateBySection[sectionId] : undefined,
+  );
+  const setPlayerState = useLightningSettings((settings) => settings.setPlayerState);
+  const savedPipSize = useLightningSettings((settings) =>
+    sectionId ? settings.pipSizeBySection[sectionId] : undefined,
+  );
+  const setPipSize = useLightningSettings((settings) => settings.setPipSize);
   const captionsEnabled = useLightningSettings((settings) => settings.captionsEnabled);
   const setCaptionsEnabled = useLightningSettings((settings) => settings.setCaptionsEnabled);
   return (
@@ -326,6 +334,10 @@ function LessonPlayer({
           onUseOriginal={() => onUseOriginal()}
           savedSelectedIds={savedSelectedIds}
           onSelectedIdsChange={sectionId ? (ids) => setSelectedStreamIds(sectionId, ids) : undefined}
+          savedPlayerState={savedPlayerState}
+          onPlayerStateChange={sectionId ? (state) => setPlayerState(sectionId, state) : undefined}
+          savedPipSize={savedPipSize}
+          onPipSizeChange={sectionId ? (size) => setPipSize(sectionId, size) : undefined}
           captionsEnabled={captionsEnabled}
           onCaptionsEnabledChange={setCaptionsEnabled}
         />
