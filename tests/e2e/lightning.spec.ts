@@ -283,13 +283,25 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await page.getByRole('button', { name: /Streams 2\/3/ }).click();
 
   await player.getByLabel('Camera 2', { exact: true }).click();
+  await expect(player).toHaveAttribute('data-mode', 'grid');
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  await player.getByLabel('Camera 2', { exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+
+  await page.getByRole('tab', { name: 'Focus', exact: true }).click();
   await expect(player).toHaveAttribute('data-mode', 'focus');
-  await expect(player.getByTestId('main-stream').getByLabel('Camera 2')).toBeVisible();
-  await expect(player.getByTestId('pip-stream')).toHaveCount(1);
-  await expect(player.getByTestId('pip-stream').getByLabel('Camera 2')).toHaveCount(0);
-  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-1"]').click();
   await expect(player.getByTestId('main-stream').getByLabel('Camera 1')).toBeVisible();
+  await expect(player.getByTestId('pip-stream')).toHaveCount(1);
   await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"]')).toHaveCount(1);
+  const playButton = page.getByRole('button', { name: 'Play' });
+  if (await playButton.isVisible()) await playButton.click();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video').click();
+  await expect(player).toHaveAttribute('data-mode', 'focus');
+  await expect(player.getByTestId('main-stream').getByLabel('Camera 1')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video').click();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   await expect(player.getByTestId('main-stream').locator('video')).toHaveJSProperty('muted', false);
   await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video')).toHaveJSProperty(
     'muted',
@@ -302,6 +314,7 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await pip.dragTo(player, { targetPosition: { x: 30, y: 30 } });
   await expect.poll(async () => (await pip.boundingBox())?.x ?? Number.POSITIVE_INFINITY).toBeLessThan(before.x);
   await expect.poll(async () => (await pip.boundingBox())?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(before.y);
+  await expect(page.getByRole('button', { name: 'Pause' })).toHaveCount(1);
   const after = await pip.boundingBox();
   if (!after) throw new Error('Dragged PiP did not have a browser bounding box.');
   expect(after.x).toBeLessThan(before.x);
@@ -309,6 +322,7 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
 
   await player.evaluate(() => {
     document.body.tabIndex = -1;
+    (document.activeElement as HTMLElement | null)?.blur();
     document.body.focus();
   });
   await page.waitForTimeout(2600);

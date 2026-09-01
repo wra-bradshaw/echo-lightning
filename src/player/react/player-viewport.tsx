@@ -482,12 +482,12 @@ export function PlayerViewport({
               onPlay={handlePlay}
               onPause={handlePause}
               onTimeUpdate={recordPlaybackPosition}
+              onVideoClick={togglePlayback}
               onMetadata={(id, element) => {
                 if (element.videoWidth && element.videoHeight) {
                   setAspectRatios((current) => ({ ...current, [id]: element.videoWidth / element.videoHeight }));
                 }
               }}
-              onPromote={(id) => dispatchPlayerAction({ type: 'promote', id })}
               onPipDrop={handlePipDragEnd}
               dragConstraints={constraintsRef}
             />
@@ -738,8 +738,8 @@ function FocusLayout({
   onPlay,
   onPause,
   onTimeUpdate,
+  onVideoClick,
   onMetadata,
-  onPromote,
   onPipDrop,
   dragConstraints,
 }: {
@@ -759,8 +759,8 @@ function FocusLayout({
   onPlay: (id: string) => void;
   onPause: (id: string) => void;
   onTimeUpdate: (element: HTMLVideoElement) => void;
+  onVideoClick: () => void;
   onMetadata: (id: string, element: HTMLVideoElement) => void;
-  onPromote: (id: string) => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   dragConstraints: RefObject<HTMLDivElement | null>;
 }) {
@@ -786,6 +786,7 @@ function FocusLayout({
           onPlay={() => onPlay(mainSource.id)}
           onPause={() => onPause(mainSource.id)}
           onTimeUpdate={onTimeUpdate}
+          onVideoClick={onVideoClick}
           onMetadata={(element) => onMetadata(mainSource.id, element)}
         />
       </motion.div>
@@ -798,7 +799,7 @@ function FocusLayout({
             source={source}
             coordinates={coordinates}
             pipSize={pipSize}
-            onPromote={onPromote}
+            onVideoClick={onVideoClick}
             onPipDrop={onPipDrop}
             dragConstraints={dragConstraints}
           >
@@ -832,7 +833,7 @@ function DraggablePip({
   source,
   coordinates,
   pipSize,
-  onPromote,
+  onVideoClick,
   onPipDrop,
   dragConstraints,
   children,
@@ -840,13 +841,14 @@ function DraggablePip({
   source: PlayerSource;
   coordinates: { x: number; y: number };
   pipSize: { width: number; height: number };
-  onPromote: (id: string) => void;
+  onVideoClick: () => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   dragConstraints: RefObject<HTMLDivElement | null>;
   children: React.ReactNode;
 }) {
   const dragControls = useDragControls();
   const dragged = useRef(false);
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const style: CSSProperties = {
     left: coordinates.x,
     top: coordinates.y,
@@ -869,26 +871,36 @@ function DraggablePip({
       dragMomentum={false}
       dragElastic={0.08}
       whileDrag={{ scale: 1.03, zIndex: 70 }}
-      onPointerDown={(event) => dragControls.start(event)}
-      onDragStart={() => {
-        dragged.current = true;
+      onPointerDown={(event) => {
+        dragged.current = false;
+        pointerStart.current = { x: event.clientX, y: event.clientY };
+        dragControls.start(event);
       }}
-      onDragEnd={(event, info) => onPipDrop(source.id, event, info)}
-      onClick={() => {
+      onPointerMove={(event) => {
+        const start = pointerStart.current;
+        if (!start) return;
+        if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) dragged.current = true;
+      }}
+      onPointerUp={(event) => {
+        const start = pointerStart.current;
+        pointerStart.current = null;
+        if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) dragged.current = true;
         if (dragged.current) {
           dragged.current = false;
           return;
         }
-        onPromote(source.id);
+        onVideoClick();
       }}
-      role="button"
-      tabIndex={0}
-      aria-label={`Promote ${source.label} to main view`}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onPromote(source.id);
-        }
+      onPointerCancel={() => {
+        pointerStart.current = null;
+        dragged.current = false;
+      }}
+      onDragStart={() => {
+        dragged.current = true;
+      }}
+      onDragEnd={(event, info) => {
+        dragged.current = true;
+        onPipDrop(source.id, event, info);
       }}
     >
       {children}
@@ -910,7 +922,7 @@ function VideoStream({
   onPause,
   onTimeUpdate,
   onMetadata,
-  onActivate,
+  onVideoClick,
   onSetAudio,
   showAudioControl = false,
   compact = false,
@@ -928,7 +940,7 @@ function VideoStream({
   onPause: () => void;
   onTimeUpdate: (element: HTMLVideoElement) => void;
   onMetadata: (element: HTMLVideoElement) => void;
-  onActivate?: () => void;
+  onVideoClick?: () => void;
   onSetAudio?: () => void;
   showAudioControl?: boolean;
   compact?: boolean;
@@ -952,7 +964,6 @@ function VideoStream({
         'group relative h-full min-h-0 w-full overflow-hidden rounded-xl bg-black',
         compact ? 'rounded-lg' : 'border border-white/15',
       )}
-      onClick={onActivate}
     >
       <video
         ref={ref}
@@ -964,12 +975,12 @@ function VideoStream({
         preload="metadata"
         aria-label={source.label}
         data-stream-id={source.id}
+        onClick={onVideoClick}
         onPlay={onPlay}
         onPause={onPause}
         onTimeUpdate={(event) => onTimeUpdate(event.currentTarget)}
         onLoadedMetadata={(event) => {
           event.currentTarget.playbackRate = playbackRate;
-          event.currentTarget.volume = volume;
           onMetadata(event.currentTarget);
         }}
       >
