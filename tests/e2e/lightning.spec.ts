@@ -39,7 +39,6 @@ test('follows Echo history changes without a reload and restores persisted setti
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toBeVisible();
-  await page.waitForTimeout(250);
   await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
   await expect(page.getByRole('heading', { name: 'Section history-test' })).toBeVisible();
 
