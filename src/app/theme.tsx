@@ -1,24 +1,45 @@
-import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, type ReactNode } from 'react';
+import { createLightningSettingsStore } from '../features/settings';
+import { SettingsProvider, useLightningSettings } from '../features/settings/react';
+import type { Theme } from '../features/settings/store';
+import type { LightningSettingsStore } from '../features/settings/store';
 
-export type Theme = 'light' | 'dark';
-const ThemeContext = createContext<{ theme: Theme; setTheme: (theme: Theme) => void } | undefined>(undefined);
+export type { Theme };
 
-export function ThemeProvider({ children, root }: { children: ReactNode; root?: HTMLElement }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark';
-    return 'light';
-  });
+export function useThemeBinding(root?: HTMLElement): void {
+  const theme = useLightningSettings((state) => state.theme);
   useLayoutEffect(() => {
     const target = root ?? document.documentElement;
     target.classList.toggle('dark', theme === 'dark');
     target.dataset.theme = theme;
   }, [root, theme]);
-  const value = useMemo(() => ({ theme, setTheme }), [theme]);
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+function ThemeBinding({ root }: { root?: HTMLElement }) {
+  useThemeBinding(root);
+  return null;
+}
+
+export function ThemeProvider({
+  children,
+  root,
+  store,
+}: {
+  children: ReactNode;
+  root?: HTMLElement;
+  store?: LightningSettingsStore;
+}) {
+  const settingsStore = useMemo(() => store ?? createLightningSettingsStore(), [store]);
+  return (
+    <SettingsProvider store={settingsStore}>
+      <ThemeBinding root={root} />
+      {children}
+    </SettingsProvider>
+  );
 }
 
 export function useTheme() {
-  const value = useContext(ThemeContext);
-  if (!value) throw new Error('useTheme must be used inside ThemeProvider.');
-  return value;
+  const theme = useLightningSettings((state) => state.theme);
+  const setTheme = useLightningSettings((state) => state.setTheme);
+  return { theme, setTheme };
 }

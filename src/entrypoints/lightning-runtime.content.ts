@@ -3,6 +3,7 @@ import { defineContentScript } from 'wxt/utils/define-content-script';
 import { injectScript } from 'wxt/utils/inject-script';
 import styles from '../app/styles.css?inline';
 import { createLightningRuntime } from '../app/runtime';
+import { createBrowserStorageAdapter } from '../features/settings';
 import { isEchoHost } from '../integrations/echo';
 import type { ExtensionResponse } from '../platform/extension/messages';
 
@@ -37,6 +38,7 @@ export default defineContentScript({
     const lightning = createLightningRuntime({
       window,
       sendMessage: (message) => runtimeApi.sendMessage(message),
+      settingsStorage: createBrowserStorageAdapter(browser.storage.local),
       cleanup: () => host.remove(),
     });
     lightning.mount(app);

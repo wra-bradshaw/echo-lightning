@@ -29,6 +29,27 @@ test('Use original Echo UI removes the tab-scoped rules', async ({ page, service
   await setStockMode(serviceWorker, tabId);
 });
 
+test('follows Echo history changes without a reload and restores persisted settings', async ({
+  page,
+  serviceWorker,
+}) => {
+  await page.bringToFront();
+  const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await setReplacementMode(serviceWorker, tabId);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#echo-lightning-host')).toBeVisible();
+
+  await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
+  await expect(page.getByRole('heading', { name: 'Section history-test' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await expect(page.locator('#lightning-app.dark')).toBeVisible();
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#lightning-app.dark')).toBeVisible();
+  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await setStockMode(serviceWorker, tabId);
+});
+
 test('leaves authenticated login routes in stock mode', async ({ page, serviceWorker }) => {
   const tabId = await tabIdForUrl(serviceWorker, page.url());
   await setReplacementMode(serviceWorker, tabId);
