@@ -25,6 +25,9 @@ describe('Lightning history adapter', () => {
   it('supports navigation snapshots and idempotent disposal', () => {
     window.history.replaceState(null, '', '/');
     const history = createLightningHistory(window);
+    let calls = 0;
+    history.subscribe(() => calls++);
+    expect(calls).toBe(0);
     expect(history.getSnapshot()).toBe(window.location.href);
     history.navigate('/lesson/one', { replace: true });
     expect(new URL(history.getSnapshot()).pathname).toBe('/lesson/one');

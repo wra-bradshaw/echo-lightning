@@ -40,6 +40,7 @@ export function createLightningHistory(
 ): LightningHistory {
   let disposed = false;
   let snapshot = win.location.href;
+  const initialSnapshot = snapshot;
   let previousIndex = Number(win.history.state?.__TSR_index ?? 0);
   const notifyNavigation = () => {
     if (disposed) return;
@@ -85,7 +86,9 @@ export function createLightningHistory(
   const subscribe = history.subscribe.bind(history);
   adapter.subscribe = (listener) => {
     const unsubscribeListener = subscribe(listener);
-    if (options.notifyOnSubscribe ?? true) listener({ location: history.location, action: { type: 'REPLACE' } });
+    if ((options.notifyOnSubscribe ?? true) && snapshot !== initialSnapshot) {
+      listener({ location: history.location, action: { type: 'REPLACE' } });
+    }
     return unsubscribeListener;
   };
   adapter.push = (path, state, navigateOpts) => {
