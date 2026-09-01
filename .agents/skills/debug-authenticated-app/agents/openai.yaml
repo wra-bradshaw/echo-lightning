@@ -1,0 +1,4 @@
+interface:
+  display_name: "Debug Authenticated App"
+  short_description: "Debug authenticated Echo360 with Playwright CLI"
+  default_prompt: "Use $debug-authenticated-app to debug the signed-in Echo360 app with Playwright CLI and report the root cause with evidence."
