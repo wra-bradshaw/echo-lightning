@@ -33,7 +33,7 @@ test('returns home when the Lightning branding is clicked', async ({ page, servi
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
 
   await page.evaluate(() => history.pushState(null, '', '/section/home-link-test'));
-  await expect(page.getByRole('heading', { name: 'Section home-link-test' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
   await page.getByRole('link', { name: 'Echo360 Lightning' }).click();
 
   await expect(page).toHaveURL(/\/courses$/);
@@ -65,7 +65,7 @@ test('follows Echo history changes without a reload and restores persisted setti
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toBeVisible();
   await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
-  await expect(page.getByRole('heading', { name: 'Section history-test' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Switch to dark mode' }).click();
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
