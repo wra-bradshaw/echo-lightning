@@ -23,10 +23,15 @@ export function AppShell({ children, onUseOriginal }: { children: ReactNode; onU
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Toggle theme"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
-            {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            {theme === 'dark' ? (
+              <Sun className="size-4" aria-hidden="true" />
+            ) : (
+              <Moon className="size-4" aria-hidden="true" />
+            )}
           </Button>
           <Button variant="outline" size="sm" onClick={() => onUseOriginal(currentUrl)}>
             <ArrowSquareOut className="size-4" />
