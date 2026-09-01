@@ -75,9 +75,7 @@ export function CoursesPage() {
     <>
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-primary text-sm font-medium">Your learning hub</p>
           <h1 className="text-3xl font-semibold tracking-tight">Your courses</h1>
-          <p className="text-muted-foreground mt-1">Pick up a lecture without loading the full Echo360 experience.</p>
         </div>
         <div className="w-full sm:max-w-xs">
           <label className="text-muted-foreground mb-1 block text-xs font-medium" htmlFor="course-search">
@@ -175,7 +173,6 @@ export function SectionPage() {
       <section>
         <p className="text-primary text-sm font-medium">Course recordings</p>
         <h1 className="text-3xl font-semibold tracking-tight">{course?.title || 'Course recordings'}</h1>
-        <p className="text-muted-foreground mt-1">Choose a lecture to resume where you left off.</p>
       </section>
       {syllabusQuery.isLoading ? <LoadingState label="Loading lectures…" /> : null}
       {syllabusQuery.isError ? <ErrorState label="Lectures could not be loaded. Try refreshing this tab." /> : null}
