@@ -28,3 +28,12 @@ test('Use original Echo UI removes the tab-scoped rules', async ({ page, service
   await expect.poll(() => hasLightningRules(serviceWorker, tabId)).toBe(false);
   await setStockMode(serviceWorker, tabId);
 });
+
+test('leaves authenticated login routes in stock mode', async ({ page, serviceWorker }) => {
+  const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await setReplacementMode(serviceWorker, tabId);
+  await page.goto('https://login.echo360.net.au/login', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#echo-lightning-host')).toHaveCount(0);
+  await expect.poll(() => hasLightningRules(serviceWorker, tabId)).toBe(false);
+  await setStockMode(serviceWorker, tabId);
+});
