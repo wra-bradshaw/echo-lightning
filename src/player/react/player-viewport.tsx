@@ -79,7 +79,7 @@ export function PlayerViewport({
   const sources = properties.sources;
   const sourceIds = useMemo(() => sources.map((source) => source.id), [sources]);
   const { state, dispatch } = usePlayerState(sourceIds, savedSelectedIds, onSelectedIdsChange);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [playbackPosition, setPlaybackPosition] = useState(properties.positionSeconds);
   const [videoElements, setVideoElements] = useState<VideoElements>({});
@@ -306,6 +306,7 @@ export function PlayerViewport({
                 <motion.div key={source.id} layout layoutId={`stream-${source.id}`} className="min-h-0 min-w-0">
                   <VideoStream
                     source={source}
+                    autoPlay
                     initialPosition={streamInitialPosition}
                     captions={properties.captions}
                     captionsEnabled={captionsEnabled}
@@ -601,6 +602,7 @@ function FocusLayout({
       >
         <VideoStream
           source={mainSource}
+          autoPlay
           initialPosition={initialPosition}
           captions={properties.captions}
           captionsEnabled={captionsEnabled}
@@ -628,6 +630,7 @@ function FocusLayout({
           >
             <VideoStream
               source={source}
+              autoPlay
               initialPosition={initialPosition}
               captions={properties.captions}
               captionsEnabled={captionsEnabled}
@@ -720,6 +723,7 @@ function DraggablePip({
 
 function VideoStream({
   source,
+  autoPlay = false,
   initialPosition,
   captions,
   captionsEnabled,
@@ -736,6 +740,7 @@ function VideoStream({
   compact = false,
 }: {
   source: PlayerSource;
+  autoPlay?: boolean;
   initialPosition: number;
   captions: PlayerProperties['captions'];
   captionsEnabled: boolean;
@@ -776,6 +781,7 @@ function VideoStream({
         className="h-full w-full object-contain"
         crossOrigin="use-credentials"
         muted={!audioEnabled}
+        autoPlay={autoPlay}
         playsInline
         preload="metadata"
         aria-label={source.label}

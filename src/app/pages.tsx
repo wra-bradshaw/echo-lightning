@@ -1,4 +1,4 @@
-import { ArrowLeft, CircleNotch, Clock, Play } from '@phosphor-icons/react';
+import { ArrowLeft, CircleNotch, Clock } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { EchoGateway, SyllabusItem } from '../domain';
@@ -7,17 +7,7 @@ import { getVideoMedia, getWatchedPercentage, useSectionSyllabus, useSectionVide
 import { useLightningSettings } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Progress,
-} from '../shared/ui';
+import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Progress } from '../shared/ui';
 import { classroomRoute, courseDetailsRoute, coursesRoute, sectionClassroomRoute, sectionRoute } from './router';
 
 function LoadingState({ label }: { label: string }) {
@@ -206,8 +196,8 @@ export function SectionPage() {
             properties?.durationSeconds,
             lesson.durationSeconds,
           );
-          return (
-            <Card key={lesson.id} className="relative">
+          const card = (
+            <Card key={lesson.id} className="group-hover:border-primary/50 relative h-full transition-colors">
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -224,22 +214,7 @@ export function SectionPage() {
                     {lesson.durationSeconds ? <span>{formatDuration(lesson.durationSeconds)}</span> : null}
                   </div>
                 </div>
-                {media ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    render={
-                      <Link
-                        to="/sections/$sectionId/classrooms/$lessonId"
-                        params={{ sectionId, lessonId: lesson.id }}
-                      />
-                    }
-                  >
-                    <Play className="size-4" weight="fill" /> Watch lecture
-                  </Button>
-                ) : (
-                  <span className="text-muted-foreground text-xs">No video available</span>
-                )}
+                {!media ? <span className="text-muted-foreground text-xs">No video available</span> : null}
               </CardContent>
               {media ? (
                 <Progress
@@ -250,6 +225,18 @@ export function SectionPage() {
                 />
               ) : null}
             </Card>
+          );
+          return media ? (
+            <Link
+              key={lesson.id}
+              to="/sections/$sectionId/classrooms/$lessonId"
+              params={{ sectionId, lessonId: lesson.id }}
+              className="group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            >
+              {card}
+            </Link>
+          ) : (
+            card
           );
         })}
       </div>

@@ -231,11 +231,15 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
     )
     .toBe('oklch(0.623 0.214 259.815)');
   await expect(page.locator('#lightning-app').getByRole('banner')).toBeVisible();
-  await navigate('/sections/section-current/classrooms/lesson-one');
+  const lectureCard = page.getByRole('link', { name: /Lecture 1 — Graphs/ });
+  await expect(lectureCard).toBeVisible();
+  await expect(page.getByText('Watch lecture', { exact: true })).toHaveCount(0);
+  await lectureCard.click();
   await expect(page).toHaveURL(/\/sections\/section-current\/classrooms\/lesson-one/);
 
   const player = page.getByTestId('classroom-player');
   await expect(player).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   await expect(player).toHaveAttribute('data-mode', 'grid');
   const viewport = page.viewportSize();
   if (!viewport) throw new Error('Browser viewport size was unavailable.');
@@ -298,8 +302,6 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   expect(after.x).toBeLessThan(before.x);
   expect(after.y).toBeLessThan(before.y);
 
-  await page.getByRole('button', { name: 'Play' }).click();
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   await player.evaluate(() => {
     document.body.tabIndex = -1;
     document.body.focus();
