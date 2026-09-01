@@ -1,3 +1,5 @@
+import { MAX_PLAYER_VOLUME } from './player-volume';
+
 export const PLAYER_PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
 export type PlayerHotkeyState = {
@@ -43,11 +45,11 @@ export function getPlayerHotkeyAction(key: string, state: PlayerHotkeyState): Pl
   if (normalizedKey === 'Home') return { type: 'seek-to', seconds: 0 };
   if (normalizedKey === 'End') return { type: 'seek-to', seconds: state.duration };
   if (normalizedKey === 'ArrowUp') {
-    const volume = clamp(state.volume + 0.05, 0, 1);
+    const volume = clamp(state.volume + 0.05, 0, MAX_PLAYER_VOLUME);
     return volume === state.volume ? null : { type: 'set-volume', volume };
   }
   if (normalizedKey === 'ArrowDown') {
-    const volume = clamp(state.volume - 0.05, 0, 1);
+    const volume = clamp(state.volume - 0.05, 0, MAX_PLAYER_VOLUME);
     return volume === state.volume ? null : { type: 'set-volume', volume };
   }
   if (/^[0-9]$/.test(normalizedKey)) {

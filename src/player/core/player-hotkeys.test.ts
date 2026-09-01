@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MAX_PLAYER_VOLUME } from './player-volume';
 import { getPlayerHotkeyAction, type PlayerHotkeyState } from './player-hotkeys';
 
 const playingState: PlayerHotkeyState = {
@@ -53,7 +54,7 @@ describe('player hotkeys', () => {
   });
 
   it('clamps volume and playback speed at their player limits', () => {
-    expect(getPlayerHotkeyAction('ArrowUp', { ...playingState, volume: 1 })).toBeNull();
+    expect(getPlayerHotkeyAction('ArrowUp', { ...playingState, volume: MAX_PLAYER_VOLUME })).toBeNull();
     expect(getPlayerHotkeyAction('ArrowDown', { ...playingState, volume: 0 })).toBeNull();
     expect(getPlayerHotkeyAction('>', { ...playingState, playbackRate: 2 })).toBeNull();
     expect(getPlayerHotkeyAction('<', { ...playingState, playbackRate: 0.25 })).toBeNull();

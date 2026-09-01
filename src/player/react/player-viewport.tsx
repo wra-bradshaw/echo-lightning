@@ -11,6 +11,12 @@ import {
   placePipStacks,
   type PipPosition,
 } from '../core/pip-placement';
+import {
+  MAX_PLAYER_VOLUME,
+  PLAYER_VOLUME_SLIDER_STEP,
+  playerVolumeToSliderValue,
+  sliderValueToPlayerVolume,
+} from '../core/player-volume';
 import { PLAYER_PLAYBACK_RATES, type PlayerHotkeyAction } from '../core/player-hotkeys';
 import type { PlayerAction } from '../core/player-state';
 import { synchronizeSecondaryVideo } from '../core/media-sync';
@@ -186,9 +192,10 @@ export function PlayerViewport({
 
   const setAllVolume = useCallback(
     (nextVolume: number) => {
-      const next = Math.min(1, Math.max(0, nextVolume));
+      const next = Number.isFinite(nextVolume) ? Math.min(MAX_PLAYER_VOLUME, Math.max(0, nextVolume)) : 0;
       setVolume(next);
-      for (const element of getManagedVideoElements()) element.volume = next;
+      const nativeVolume = Math.min(1, next);
+      for (const element of getManagedVideoElements()) element.volume = nativeVolume;
     },
     [getManagedVideoElements],
   );
@@ -450,7 +457,7 @@ export function PlayerViewport({
                         }));
                       }
                     }}
-                    onActivate={() => dispatchPlayerAction({ type: 'focus', id: source.id })}
+                    onVideoClick={togglePlayback}
                     onSetAudio={() => dispatchPlayerAction({ type: 'set-audio', id: source.id })}
                     showAudioControl
                   />
@@ -506,6 +513,48 @@ export function PlayerViewport({
               >
                 {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" weight="fill" />}
               </Button>
+              <div
+                className="group/volume pointer-events-auto flex shrink-0 items-center"
+                data-testid="player-volume-control"
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                  aria-label={isMuted ? 'Unmute' : 'Mute'}
+                  onClick={() => setIsMuted((muted) => !muted)}
+                >
+                  {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
+                </Button>
+                <div
+                  className="grid w-0 grid-cols-[0fr] overflow-hidden opacity-0 transition-[width,grid-template-columns,opacity] delay-500 duration-200 group-hover/volume:w-36 group-hover/volume:grid-cols-[1fr] group-hover/volume:opacity-100 group-hover/volume:delay-0"
+                  data-testid="player-volume-slider-reveal"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Slider
+                      aria-label="Volume"
+                      data-testid="player-volume-slider"
+                      value={[playerVolumeToSliderValue(volume)]}
+                      min={0}
+                      max={100}
+                      step={PLAYER_VOLUME_SLIDER_STEP}
+                      onValueChange={(value) => {
+                        const next = Array.isArray(value) ? Number(value[0]) : Number(value);
+                        if (Number.isFinite(next)) {
+                          setAllVolume(sliderValueToPlayerVolume(next));
+                          setIsMuted(false);
+                        }
+                      }}
+                    />
+                    <span
+                      data-testid="player-volume-value"
+                      className="w-12 shrink-0 text-right text-xs text-white/80 tabular-nums"
+                    >
+                      {Math.round(volume * 100)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
               <span className="text-xs text-white/80 tabular-nums">
                 {formatDuration(currentTime)} / {formatDuration(duration)}
               </span>
