@@ -27,4 +27,22 @@ describe('Echo transport', () => {
       }),
     ).rejects.toBeInstanceOf(InvalidResponseError);
   });
+
+  it('supports authenticated POST requests and validates their decoded response', async () => {
+    const fetcher = vi.fn(async () => response({ status: 'ok' }));
+    const transport = new EchoTransport('https://echo360.net.au', fetcher);
+
+    await expect(
+      transport.post('/api/player-position', (value) => {
+        if (!value || typeof value !== 'object' || (value as { status?: unknown }).status !== 'ok')
+          throw new Error('Unexpected response.');
+        return undefined;
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(fetcher).toHaveBeenCalledWith(
+      expect.any(URL),
+      expect.objectContaining({ credentials: 'include', method: 'POST' }),
+    );
+  });
 });

@@ -21,6 +21,10 @@ type ChromeApi = {
       set: (items: Record<string, unknown>) => Promise<void>;
       remove: (keys: string | string[]) => Promise<void>;
     };
+    local: {
+      get: (keys?: string | string[]) => Promise<Record<string, unknown>>;
+      remove: (keys: string | string[]) => Promise<void>;
+    };
   };
   scripting: {
     executeScript: (options: { target: { tabId: number }; files: string[] }) => Promise<unknown>;
@@ -81,4 +85,18 @@ export async function hasLightningRules(serviceWorker: Worker, tabId: number): P
     const current = await api.declarativeNetRequest.getSessionRules();
     return current.some((rule) => ids.includes(rule.id));
   }, ruleIdsForTab(tabId));
+}
+
+export async function clearExtensionLocalStorage(serviceWorker: Worker, key: string): Promise<void> {
+  await serviceWorker.evaluate(async (storageKey) => {
+    const api = (globalThis as unknown as { chrome: ChromeApi }).chrome;
+    await api.storage.local.remove(storageKey);
+  }, key);
+}
+
+export async function readExtensionLocalStorage(serviceWorker: Worker, key: string): Promise<Record<string, unknown>> {
+  return serviceWorker.evaluate(async (storageKey) => {
+    const api = (globalThis as unknown as { chrome: ChromeApi }).chrome;
+    return api.storage.local.get(storageKey);
+  }, key);
 }

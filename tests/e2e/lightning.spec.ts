@@ -1,5 +1,14 @@
 import { expect, test } from './fixtures';
-import { hasLightningRules, injectRuntime, setReplacementMode, setStockMode, tabIdForUrl } from './extension-helpers';
+import {
+  clearExtensionLocalStorage,
+  hasLightningRules,
+  injectRuntime,
+  readExtensionLocalStorage,
+  setReplacementMode,
+  setStockMode,
+  tabIdForUrl,
+} from './extension-helpers';
+import { SETTINGS_STORAGE_KEY } from '../../src/features/settings';
 
 test('mounts an isolated Lightning shell for active tab rules', async ({ page, serviceWorker }) => {
   await page.bringToFront();
@@ -59,7 +68,8 @@ test('leaves authenticated login routes in stock mode', async ({ page, serviceWo
   await setStockMode(serviceWorker, tabId);
 });
 
-test('loads the happy path from courses through a resumable multi-camera lecture', async ({ page, serviceWorker }) => {
+test('loads the happy path and syncs resume progress with Echo360', async ({ page, serviceWorker }) => {
+  let serverPosition = 125;
   await page.route('**/user/enrollments', (route) =>
     route.fulfill({
       contentType: 'application/json',
@@ -127,7 +137,7 @@ test('loads the happy path from courses through a resumable multi-camera lecture
           mediaId: 'media-one',
           mediaName: 'Lecture 1 — Graphs',
           captions: 'https://content.example.test/captions.vtt',
-          lastPlayedToSeconds: 125,
+          lastPlayedToSeconds: serverPosition,
           playableAudioVideo: {
             duration: 'PT600S',
             mediaId: 'media-one',
@@ -156,10 +166,22 @@ test('loads the happy path from courses through a resumable multi-camera lecture
       }),
     }),
   );
+  const positionRequests: Array<{ method: string; seconds: string }> = [];
+  await page.route('**/api/ui/echoplayer/media-one/last-played-to-seconds**', (route) => {
+    positionRequests.push({
+      method: route.request().method(),
+      seconds: new URL(route.request().url()).searchParams.get('seconds') ?? '',
+    });
+    return route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ status: 'ok' }),
+    });
+  });
   await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
 
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await clearExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
   await setStockMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await injectRuntime(serviceWorker, tabId);
@@ -220,5 +242,23 @@ test('loads the happy path from courses through a resumable multi-camera lecture
     .toBe(1.5);
   await page.getByRole('button', { name: 'Play' }).click();
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await cameraGrid
+    .locator('video')
+    .first()
+    .evaluate((video) => {
+      Object.defineProperty(video, 'currentTime', { configurable: true, value: 137.8 });
+      video.dispatchEvent(new Event('timeupdate'));
+      video.dispatchEvent(new Event('pause'));
+    });
+  await expect.poll(() => positionRequests.length).toBeGreaterThan(0);
+  expect(positionRequests.every(({ method, seconds }) => method === 'POST' && /^\d+$/.test(seconds))).toBe(true);
+
+  serverPosition = 240;
+  await setReplacementMode(serviceWorker, tabId);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.getByText('Lightning active')).toBeVisible();
+  await expect(page.getByText('Resuming at 4:00')).toBeVisible();
+  const storedSettings = await readExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
+  expect(storedSettings[SETTINGS_STORAGE_KEY]).toBeUndefined();
   await setStockMode(serviceWorker, tabId);
 });

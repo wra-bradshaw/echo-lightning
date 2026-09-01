@@ -8,6 +8,7 @@ function gateway() {
     getCourses: vi.fn(),
     getSectionSyllabus: vi.fn(),
     getPlayerProperties: vi.fn(),
+    savePlayerPosition: vi.fn(),
   };
 }
 

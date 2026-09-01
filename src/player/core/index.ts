@@ -5,5 +5,7 @@ export type { HlsSource } from './media-controller';
 export { shouldCorrectMediaDrift, synchronizeSecondaryVideo } from './media-sync';
 export { createPlayerSession } from './session';
 export type { PlayerSession, PlayerSessionCallbacks, PlayerSessionStopReason } from './session';
+export { createPlaybackPositionQueue } from './playback-sync';
+export type { PlaybackPositionQueue, PlaybackPositionQueueOptions } from './playback-sync';
 export { PLAYER_COMMAND_EVENT, PLAYER_RUNTIME_READY_EVENT, PLAYER_STATUS_EVENT } from './player-events';
 export type { PlayerCommand, PlayerStatus } from './player-events';

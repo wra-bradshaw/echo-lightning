@@ -49,15 +49,27 @@ describe('lightning settings store', () => {
     expect(invalidStore.getState()).toMatchObject({ theme: 'light', captionsEnabled: true, playbackRate: 1 });
   });
 
-  it('persists per-media playback progress and clamps invalid values', async () => {
-    const backing = memoryStorage();
+  it('discards and rewrites legacy local playback progress during rehydration', async () => {
+    const backing = memoryStorage({
+      'lightning.settings': JSON.stringify({
+        state: {
+          theme: 'dark',
+          captionsEnabled: false,
+          playbackRate: 1.5,
+          progress: { 'media-1': { position: 125, duration: 300 } },
+        },
+        version: 1,
+      }),
+    });
     const store = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
-    store.getState().setPlaybackProgress('media-1', 125, 300);
-    store.getState().setPlaybackProgress('media-1', 500, 300);
-    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const recreated = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
-    await recreated.persist.rehydrate();
-    expect(recreated.getState().progress).toEqual({ 'media-1': { position: 300, duration: 300 } });
+    await store.persist.rehydrate();
+
+    expect(store.getState()).toMatchObject({ theme: 'dark', captionsEnabled: false, playbackRate: 1.5 });
+    expect('progress' in store.getState()).toBe(false);
+    expect(JSON.parse(backing.values.get('lightning.settings')!)).toEqual({
+      state: { theme: 'dark', captionsEnabled: false, playbackRate: 1.5 },
+      version: 2,
+    });
   });
 });

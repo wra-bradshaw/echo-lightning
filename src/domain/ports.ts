@@ -19,4 +19,5 @@ export interface EchoGateway {
     mediaId: string,
     options?: { signal?: CancellationSignal },
   ): Promise<PlayerProperties>;
+  savePlayerPosition(mediaId: string, seconds: number): Promise<void>;
 }

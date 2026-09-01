@@ -1,28 +1,16 @@
-import { ArrowLeft, CheckCircle, CircleNotch, Clock, Play, Plus, Trash, VideoCamera } from '@phosphor-icons/react';
+import { ArrowLeft, CircleNotch, Clock, Play, Plus, Trash, VideoCamera } from '@phosphor-icons/react';
 import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { PlayerProperties, PlayerSource, SyllabusItem } from '../domain';
 import { useCourses } from '../features/courses';
 import { useSectionSyllabus } from '../features/sections';
-import { useLightningProgress, useLightningSettings } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { useMediaClock } from '../player/react/use-media-clock';
 import { useCaptionTracks } from '../player/react/use-caption-tracks';
+import { usePlaybackSync } from '../player/react/use-playback-sync';
 import { useVideoSource } from '../player/react/use-video-source';
 import { synchronizeSecondaryVideo } from '../player/core/media-sync';
-import type { PlaybackProgress } from '../features/settings';
-import {
-  Badge,
-  Button,
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  Input,
-  Progress,
-  Slider,
-} from '../shared/ui';
+import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Slider } from '../shared/ui';
 import { classroomRoute, courseDetailsRoute, coursesRoute, sectionClassroomRoute, sectionRoute } from './router';
 
 function LoadingState({ label }: { label: string }) {
@@ -161,16 +149,10 @@ export function CourseDetailsPage() {
   );
 }
 
-function lessonProgress(lesson: SyllabusItem, progress: Record<string, PlaybackProgress>) {
-  const mediaId = lesson.media.find((media) => media.available !== false)?.id;
-  return mediaId ? progress[mediaId] : undefined;
-}
-
 export function SectionPage() {
   const { sectionId } = sectionRoute.useParams();
   const { gateway } = sectionRoute.useRouteContext();
   const syllabusQuery = useSectionSyllabus(gateway, sectionId);
-  const progress = useLightningSettings((state) => state.progress);
   const lessons = useMemo(
     () =>
       [...(syllabusQuery.data ?? [])].sort((left, right) =>
@@ -204,19 +186,12 @@ export function SectionPage() {
       <div className="space-y-3">
         {lessons.map((lesson, index) => {
           const media = lesson.media.find((item) => item.available !== false);
-          const saved = lessonProgress(lesson, progress);
-          const percentage = saved?.duration ? Math.min(100, (saved.position / saved.duration) * 100) : 0;
-          const watched = percentage >= 95;
           return (
             <Card key={lesson.id}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    {watched ? (
-                      <CheckCircle className="text-primary size-4" weight="fill" />
-                    ) : (
-                      <span className="text-muted-foreground text-sm">{index + 1}</span>
-                    )}
+                    <span className="text-muted-foreground text-sm">{index + 1}</span>
                     <h2 className="truncate font-medium">{lesson.title || `Lecture ${index + 1}`}</h2>
                   </div>
                   <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -227,19 +202,7 @@ export function SectionPage() {
                       </span>
                     ) : null}
                     {lesson.durationSeconds ? <span>{formatDuration(lesson.durationSeconds)}</span> : null}
-                    {saved ? (
-                      <span>{watched ? 'Watched' : `${formatDuration(saved.position)} watched`}</span>
-                    ) : (
-                      <span>Not started</span>
-                    )}
                   </div>
-                  {saved ? (
-                    <Progress
-                      value={percentage}
-                      className="mt-3 max-w-md"
-                      aria-label={`${Math.round(percentage)}% watched`}
-                    />
-                  ) : null}
                 </div>
                 {media ? (
                   <Button
@@ -252,7 +215,7 @@ export function SectionPage() {
                       />
                     }
                   >
-                    <Play className="size-4" weight="fill" /> {saved && !watched ? 'Resume lecture' : 'Watch lecture'}
+                    <Play className="size-4" weight="fill" /> Watch lecture
                   </Button>
                 ) : (
                   <span className="text-muted-foreground text-xs">No video available</span>
@@ -326,12 +289,20 @@ function LessonPlayer({
     <>
       {playerQuery.isLoading ? <LoadingState label="Preparing video sources…" /> : null}
       {playerQuery.isError ? <ErrorState label="Video sources could not be loaded for this lecture." /> : null}
-      {playerQuery.data ? <MultiCameraPlayer lesson={lesson} properties={playerQuery.data} /> : null}
+      {playerQuery.data ? <MultiCameraPlayer gateway={gateway} lesson={lesson} properties={playerQuery.data} /> : null}
     </>
   );
 }
 
-function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; properties: PlayerProperties }) {
+function MultiCameraPlayer({
+  gateway,
+  lesson,
+  properties,
+}: {
+  gateway: Parameters<typeof useSectionSyllabus>[0];
+  lesson: SyllabusItem;
+  properties: PlayerProperties;
+}) {
   const sources = properties.sources;
   const [activeIds, setActiveIds] = useState(() =>
     sources.slice(0, Math.min(2, sources.length)).map((source) => source.id),
@@ -343,8 +314,7 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
   const [draggedId, setDraggedId] = useState<string>();
   const videoMap = useRef(videoElements);
   const syncing = useRef(false);
-  const { progress, saveProgress } = useLightningProgress(properties.mediaId);
-  const [resumePosition] = useState(() => Math.max(properties.positionSeconds, progress?.position ?? 0));
+  const resumePosition = properties.positionSeconds;
   const sourceMap = useMemo(() => new Map(sources.map((source) => [source.id, source])), [sources]);
   const activeSources = activeIds.flatMap((id) => {
     const source = sourceMap.get(id);
@@ -353,6 +323,12 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
   const leader = videoElements[activeIds[0] ?? ''] ?? null;
   const currentTime = useMediaClock(leader);
   const duration = properties.durationSeconds ?? lesson.durationSeconds ?? 0;
+  const { savePosition } = usePlaybackSync({
+    gateway,
+    mediaId: properties.mediaId,
+    leader,
+    duration,
+  });
   const bindVideo = useCallback((id: string, element: HTMLVideoElement | null) => {
     setVideoElements((current) => {
       const next = { ...current };
@@ -378,14 +354,6 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
     }
   }, [isPlaying]);
 
-  const updateProgress = useCallback(
-    (element: HTMLVideoElement) => {
-      if (!Number.isFinite(element.currentTime)) return;
-      saveProgress(element.currentTime, duration || element.duration || 0);
-    },
-    [duration, saveProgress],
-  );
-
   const handlePlay = useCallback((id: string) => {
     setIsPlaying(true);
     if (syncing.current) return;
@@ -397,19 +365,15 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
     });
   }, []);
 
-  const handlePause = useCallback(
-    (id: string, element: HTMLVideoElement) => {
-      updateProgress(element);
-      if (syncing.current) return;
-      setIsPlaying(false);
-      syncing.current = true;
-      for (const [otherId, other] of Object.entries(videoMap.current)) if (otherId !== id) other.pause();
-      queueMicrotask(() => {
-        syncing.current = false;
-      });
-    },
-    [updateProgress],
-  );
+  const handlePause = useCallback((id: string) => {
+    if (syncing.current) return;
+    setIsPlaying(false);
+    syncing.current = true;
+    for (const [otherId, other] of Object.entries(videoMap.current)) if (otherId !== id) other.pause();
+    queueMicrotask(() => {
+      syncing.current = false;
+    });
+  }, []);
 
   const moveSource = (id: string, direction: -1 | 1) => {
     setActiveIds((current) => {
@@ -472,10 +436,9 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
               playbackRate={playbackRate}
               onVideo={bindVideo}
               onPlay={() => handlePlay(source.id)}
-              onPause={(element) => handlePause(source.id, element)}
+              onPause={() => handlePause(source.id)}
               onTimeUpdate={(element) => {
-                if (index === 0) updateProgress(element);
-                else if (leader) synchronizeSecondaryVideo(leader, element);
+                if (index !== 0 && leader) synchronizeSecondaryVideo(leader, element);
               }}
               onDragStart={() => setDraggedId(source.id)}
               onDrop={() => onDrop(source.id)}
@@ -524,6 +487,7 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
               const next = Array.isArray(value) ? Number(value[0]) : Number(value);
               if (Number.isFinite(next)) setAllCurrentTime(next);
             }}
+            onValueCommitted={() => savePosition()}
           />
           <div className="flex flex-wrap gap-2">
             {activeSources.map((source, index) => (
@@ -562,7 +526,7 @@ function MultiCameraPlayer({ lesson, properties }: { lesson: SyllabusItem; prope
         </div>
         {resumePosition > 0 ? (
           <p className="text-muted-foreground text-xs">
-            Resuming at {formatDuration(resumePosition)}. Progress is saved on this device.
+            Resuming at {formatDuration(resumePosition)}. Progress is saved to Echo360.
           </p>
         ) : null}
       </CardContent>

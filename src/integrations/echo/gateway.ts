@@ -1,6 +1,7 @@
 import type { EchoGateway } from '../../domain';
 import { createEnrollmentsEndpoint } from './endpoints/enrollments/adapter';
 import { createPlayerPropertiesEndpoint } from './endpoints/player-properties/adapter';
+import { createPlayerPositionEndpoint } from './endpoints/player-position/adapter';
 import { createSyllabusEndpoint } from './endpoints/syllabus/adapter';
 import { createAuthenticationRecovery } from './transport/authentication-recovery';
 import { EchoTransport } from './transport/client';
@@ -17,6 +18,7 @@ export function createEchoGateway(options: EchoGatewayOptions): EchoGateway {
     ...createEnrollmentsEndpoint(transport),
     ...createSyllabusEndpoint(transport),
     ...createPlayerPropertiesEndpoint(transport),
+    ...createPlayerPositionEndpoint(transport),
   };
 }
 

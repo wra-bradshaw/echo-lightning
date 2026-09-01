@@ -11,7 +11,12 @@ function renderRouter(path: string) {
   const history = createLightningHistory(window);
   const router = createLightningRouter({
     history,
-    gateway: { getCourses: vi.fn(), getSectionSyllabus: vi.fn(), getPlayerProperties: vi.fn() },
+    gateway: {
+      getCourses: vi.fn(),
+      getSectionSyllabus: vi.fn(),
+      getPlayerProperties: vi.fn(),
+      savePlayerPosition: vi.fn(),
+    },
     queryClient: createLightningQueryClient(),
     onUseOriginal: vi.fn(),
   });

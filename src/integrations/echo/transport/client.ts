@@ -79,6 +79,10 @@ export class EchoTransport {
   get<T>(path: string, decode: EchoDecoder<T>, options?: EchoRequestOptions): Promise<T> {
     return this.request(path, decode, { ...options, method: 'GET' });
   }
+
+  post<T>(path: string, decode: EchoDecoder<T>, options?: EchoRequestOptions): Promise<T> {
+    return this.request(path, decode, { ...options, method: 'POST' });
+  }
 }
 
 export { AuthenticationError, EchoApiError, HttpError, InvalidResponseError, NetworkError } from './errors';

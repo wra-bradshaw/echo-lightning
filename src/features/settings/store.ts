@@ -3,23 +3,16 @@ import { createJSONStorage, persist, type StateStorage } from 'zustand/middlewar
 
 export type Theme = 'light' | 'dark';
 
-export type PlaybackProgress = {
-  position: number;
-  duration: number;
-};
-
 export type LightningSettings = {
   theme: Theme;
   captionsEnabled: boolean;
   playbackRate: number;
-  progress: Record<string, PlaybackProgress>;
 };
 
 export type LightningSettingsState = LightningSettings & {
   setTheme: (theme: Theme) => void;
   setCaptionsEnabled: (enabled: boolean) => void;
   setPlaybackRate: (rate: number) => void;
-  setPlaybackProgress: (mediaId: string, position: number, duration: number) => void;
 };
 
 export type LightningSettingsStore = StoreApi<LightningSettingsState> & {
@@ -41,7 +34,7 @@ export type BrowserStorageArea = {
 export type SettingsStorageInput = SettingsStorage | BrowserStorageArea;
 
 export const SETTINGS_STORAGE_KEY = 'lightning.settings';
-const SETTINGS_VERSION = 1;
+const SETTINGS_VERSION = 2;
 
 function validTheme(value: unknown): value is Theme {
   return value === 'light' || value === 'dark';
@@ -51,32 +44,19 @@ function validPlaybackRate(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0.25 && value <= 4;
 }
 
-function validProgress(value: unknown): value is Record<string, PlaybackProgress> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.values(value).every((entry) => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false;
-    const progress = entry as Partial<PlaybackProgress>;
-    return (
-      typeof progress.position === 'number' &&
-      Number.isFinite(progress.position) &&
-      progress.position >= 0 &&
-      typeof progress.duration === 'number' &&
-      Number.isFinite(progress.duration) &&
-      progress.duration >= 0 &&
-      progress.position <= progress.duration
-    );
-  });
-}
-
-function validSettings(value: unknown): value is Omit<LightningSettings, 'progress'> & { progress?: unknown } {
+function validSettings(value: unknown): value is LightningSettings {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const state = value as Partial<LightningSettings>;
-  return (
-    validTheme(state.theme) &&
-    typeof state.captionsEnabled === 'boolean' &&
-    validPlaybackRate(state.playbackRate) &&
-    (state.progress === undefined || validProgress(state.progress))
-  );
+  return validTheme(state.theme) && typeof state.captionsEnabled === 'boolean' && validPlaybackRate(state.playbackRate);
+}
+
+function settingsOnly(value: unknown): LightningSettings | undefined {
+  if (!validSettings(value)) return undefined;
+  return {
+    theme: value.theme,
+    captionsEnabled: value.captionsEnabled,
+    playbackRate: value.playbackRate,
+  };
 }
 
 export function createBrowserStorageAdapter(area: BrowserStorageArea): SettingsStorage {
@@ -112,7 +92,6 @@ export function createLightningSettingsStore(
     theme: options.systemTheme ?? systemTheme(),
     captionsEnabled: true,
     playbackRate: 1,
-    progress: {},
   };
   const storageInput =
     options.storage ?? (options.storageArea ? createBrowserStorageAdapter(options.storageArea) : undefined);
@@ -133,32 +112,24 @@ export function createLightningSettingsStore(
       setTheme: (theme) => set({ theme }),
       setCaptionsEnabled: (captionsEnabled) => set({ captionsEnabled }),
       setPlaybackRate: (playbackRate) => set({ playbackRate }),
-      setPlaybackProgress: (mediaId, position, duration) => {
-        if (!mediaId || !Number.isFinite(position) || !Number.isFinite(duration) || duration < 0) return;
-        const safeDuration = Math.max(0, duration);
-        const safePosition = Math.min(safeDuration, Math.max(0, position));
-        set((state) => ({
-          progress: { ...state.progress, [mediaId]: { position: safePosition, duration: safeDuration } },
-        }));
-      },
     }),
     {
       name: SETTINGS_STORAGE_KEY,
       version: SETTINGS_VERSION,
       storage: createJSONStorage<LightningSettings>(() => storage),
       skipHydration: true,
-      partialize: ({ theme, captionsEnabled, playbackRate, progress }) => ({
+      partialize: ({ theme, captionsEnabled, playbackRate }) => ({
         theme,
         captionsEnabled,
         playbackRate,
-        progress,
       }),
+      migrate: (persisted) => settingsOnly(persisted) ?? defaults,
       merge: (persisted, current) => {
-        if (!validSettings(persisted)) return current;
+        const saved = settingsOnly(persisted);
+        if (!saved) return current;
         return {
           ...current,
-          ...persisted,
-          progress: persisted.progress && validProgress(persisted.progress) ? persisted.progress : current.progress,
+          ...saved,
         };
       },
     },
