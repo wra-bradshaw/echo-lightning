@@ -156,7 +156,7 @@ async function run(options: DebugAppOptions): Promise<number> {
     ...process.env,
     ECHO360_DEBUG_MODE: options.stock ? 'stock' : 'lightning',
     ECHO360_DEBUG_TRACE: options.trace ? '1' : '0',
-    HEADED: '1',
+    HEADED: '0',
     PLAYWRIGHT_HTML_OPEN: 'never',
   };
   const child = spawn(
