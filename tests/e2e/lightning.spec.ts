@@ -206,6 +206,25 @@ test('loads the happy path and syncs resume progress with Echo360', async ({ pag
   await expect(page.getByText('Design of Algorithms')).toBeVisible();
   await page.getByRole('link', { name: /Design of Algorithms/ }).click();
   await expect(page.getByRole('heading', { name: 'Section section-current' })).toBeVisible();
+  const watchedProgress = page.getByRole('progressbar', { name: '21% watched' });
+  await expect(watchedProgress).toBeVisible();
+  await expect
+    .poll(async () => {
+      const boxes = await Promise.all([
+        watchedProgress.locator('[data-slot="progress-track"]').boundingBox(),
+        watchedProgress.locator('[data-slot="progress-indicator"]').boundingBox(),
+      ]);
+      const [track, indicator] = boxes;
+      return track && indicator ? indicator.width / track.width : 0;
+    })
+    .toBeCloseTo(125 / 600, 1);
+  await expect
+    .poll(() =>
+      watchedProgress
+        .locator('[data-slot="progress-indicator"]')
+        .evaluate((element) => getComputedStyle(element).backgroundColor),
+    )
+    .toBe('oklch(0.623 0.214 259.815)');
   await expect(page.getByText('Lecture 1 — Graphs')).toBeVisible();
   await page.getByRole('link', { name: /Resume|Watch lecture/ }).click();
   await expect(page.getByRole('heading', { name: 'Lecture 1 — Graphs' })).toBeVisible();

@@ -3,14 +3,25 @@ import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { PlayerProperties, PlayerSource, SyllabusItem } from '../domain';
 import { useCourses } from '../features/courses';
-import { useSectionSyllabus } from '../features/sections';
+import { getVideoMedia, getWatchedPercentage, useSectionSyllabus, useSectionVideoProgress } from '../features/sections';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { useMediaClock } from '../player/react/use-media-clock';
 import { useCaptionTracks } from '../player/react/use-caption-tracks';
 import { usePlaybackSync } from '../player/react/use-playback-sync';
 import { useVideoSource } from '../player/react/use-video-source';
 import { synchronizeSecondaryVideo } from '../player/core/media-sync';
-import { Badge, Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Slider } from '../shared/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Progress,
+  Slider,
+} from '../shared/ui';
 import { classroomRoute, courseDetailsRoute, coursesRoute, sectionClassroomRoute, sectionRoute } from './router';
 
 function LoadingState({ label }: { label: string }) {
@@ -160,6 +171,7 @@ export function SectionPage() {
       ),
     [syllabusQuery.data],
   );
+  const videoProgress = useSectionVideoProgress(gateway, lessons);
   return (
     <>
       <Link
@@ -185,9 +197,15 @@ export function SectionPage() {
       ) : null}
       <div className="space-y-3">
         {lessons.map((lesson, index) => {
-          const media = lesson.media.find((item) => item.available !== false);
+          const media = getVideoMedia(lesson);
+          const properties = videoProgress.get(lesson.id);
+          const watchedPercentage = getWatchedPercentage(
+            properties?.positionSeconds,
+            properties?.durationSeconds,
+            lesson.durationSeconds,
+          );
           return (
-            <Card key={lesson.id}>
+            <Card key={lesson.id} className="relative">
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -221,6 +239,14 @@ export function SectionPage() {
                   <span className="text-muted-foreground text-xs">No video available</span>
                 )}
               </CardContent>
+              {media ? (
+                <Progress
+                  value={watchedPercentage}
+                  indicatorClassName="bg-blue-500"
+                  className="absolute right-0 bottom-0 left-0 block gap-0"
+                  aria-label={`${Math.round(watchedPercentage)}% watched`}
+                />
+              ) : null}
             </Card>
           );
         })}
