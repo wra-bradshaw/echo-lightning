@@ -12,5 +12,5 @@ export interface NavigationStore {
 
 export { createLightningHistory };
 export function createNavigationStore(win: Window = window, onNavigate?: (url: string) => void): LightningHistory {
-  return createLightningHistory(win, onNavigate);
+  return createLightningHistory(win, onNavigate, { notifyOnSubscribe: false });
 }

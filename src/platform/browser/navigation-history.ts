@@ -12,7 +12,11 @@ function relativeHref(url: string | URL, base: string): string {
   return `${resolved.pathname}${resolved.search}${resolved.hash}`;
 }
 
-export function createLightningHistory(win: Window = window, onNavigate?: (url: string) => void): LightningHistory {
+export function createLightningHistory(
+  win: Window = window,
+  onNavigate?: (url: string) => void,
+  options: { notifyOnSubscribe?: boolean } = {},
+): LightningHistory {
   const history = createBrowserHistory({ window: win });
   let disposed = false;
   let snapshot = win.location.href;
@@ -37,7 +41,7 @@ export function createLightningHistory(win: Window = window, onNavigate?: (url: 
   const subscribe = history.subscribe.bind(history);
   adapter.subscribe = (listener) => {
     const unsubscribeListener = subscribe(listener);
-    listener({ location: history.location, action: { type: 'REPLACE' } });
+    if (options.notifyOnSubscribe ?? true) listener({ location: history.location, action: { type: 'REPLACE' } });
     return unsubscribeListener;
   };
   adapter.push = (path, state, navigateOpts) => {
