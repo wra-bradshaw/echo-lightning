@@ -1,5 +1,5 @@
 import { ArrowSquareOut, BookOpen, Moon, Sun } from '@phosphor-icons/react';
-import { useRouter } from '@tanstack/react-router';
+import { Link, useRouter } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { canonicalEchoUrl } from '../integrations/echo';
 import { Button } from '../shared/ui/button';
@@ -12,10 +12,14 @@ export function AppShell({ children, onUseOriginal }: { children: ReactNode; onU
   return (
     <div className="bg-background text-foreground min-h-screen">
       <header className="bg-card/95 flex h-14 items-center justify-between border-b px-4 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-2 font-semibold">
+        <Link
+          to="/courses"
+          aria-label="Echo360 Lightning"
+          className="focus-visible:ring-ring focus-visible:ring-offset-background inline-flex items-center gap-2 rounded-md font-semibold outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        >
           <BookOpen className="text-primary size-5" aria-hidden="true" />
           Echo360 Lightning
-        </div>
+        </Link>
         <div className="flex items-center gap-2">
           <span className="bg-primary/10 text-primary rounded-full px-2 py-1 text-xs font-medium">
             Lightning active

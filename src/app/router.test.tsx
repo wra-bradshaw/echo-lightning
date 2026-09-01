@@ -1,5 +1,6 @@
 import { RouterProvider } from '@tanstack/react-router';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { createLightningRouter } from './router';
 import { createLightningHistory } from '../platform/browser/navigation-history';
@@ -21,7 +22,7 @@ function renderRouter(path: string) {
     onUseOriginal: vi.fn(),
   });
   const root = document.createElement('div');
-  render(
+  const rendered = render(
     <AppProviders
       root={root}
       queryClient={router.options.context.queryClient}
@@ -30,7 +31,7 @@ function renderRouter(path: string) {
       <RouterProvider router={router} />
     </AppProviders>,
   );
-  return { router, history };
+  return { router, history, container: rendered.container };
 }
 
 describe('Lightning router', () => {
@@ -58,6 +59,17 @@ describe('Lightning router', () => {
     await router.navigate({ to: '/sections/$sectionId', params: { sectionId: 'section 2' } });
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Section section 2' })).toBeVisible());
     expect(window.location.pathname).toBe('/sections/section%202');
+    history.dispose();
+  });
+
+  it('returns home when the Echo360 Lightning branding is clicked', async () => {
+    const { history, container } = renderRouter('/sections/section%201');
+    await waitFor(() => expect(within(container).getByRole('heading', { name: 'Section section 1' })).toBeVisible());
+
+    await userEvent.click(within(container).getByRole('link', { name: 'Echo360 Lightning' }));
+
+    await waitFor(() => expect(within(container).getByRole('heading', { name: 'Your courses' })).toBeVisible());
+    expect(window.location.pathname).toBe('/courses');
     history.dispose();
   });
 });
