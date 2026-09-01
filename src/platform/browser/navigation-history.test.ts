@@ -11,7 +11,6 @@ describe('Lightning history adapter', () => {
     history.flush();
     expect(onNavigate).toHaveBeenCalledTimes(1);
     window.history.replaceState(null, '', '/sections/one');
-    expect(onNavigate).toHaveBeenCalledTimes(2);
     window.document.dispatchEvent(new Event(NAVIGATION_EVENT));
     expect(onNavigate).toHaveBeenCalledTimes(2);
     window.history.pushState(null, '', '/classrooms/two');

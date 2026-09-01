@@ -1,4 +1,4 @@
-import { createBrowserHistory, type RouterHistory } from '@tanstack/react-router';
+import { createHistory, type HistoryLocation, type RouterHistory } from '@tanstack/react-router';
 import { NAVIGATION_EVENT } from './navigation-event';
 
 export interface LightningHistory extends RouterHistory {
@@ -12,14 +12,35 @@ function relativeHref(url: string | URL, base: string): string {
   return `${resolved.pathname}${resolved.search}${resolved.hash}`;
 }
 
+function browserLocation(win: Window): HistoryLocation {
+  const href = `${win.location.pathname}${win.location.search}${win.location.hash}`;
+  const hashIndex = href.indexOf('#');
+  const searchIndex = href.indexOf('?');
+  const pathEnd =
+    hashIndex > 0
+      ? searchIndex > 0
+        ? Math.min(hashIndex, searchIndex)
+        : hashIndex
+      : searchIndex > 0
+        ? searchIndex
+        : href.length;
+  return {
+    href,
+    pathname: href.slice(0, pathEnd),
+    search: searchIndex > -1 ? href.slice(searchIndex, hashIndex > -1 ? hashIndex : undefined) : '',
+    hash: hashIndex > -1 ? href.slice(hashIndex) : '',
+    state: win.history.state ?? { __TSR_index: 0 },
+  };
+}
+
 export function createLightningHistory(
   win: Window = window,
   onNavigate?: (url: string) => void,
   options: { notifyOnSubscribe?: boolean } = {},
 ): LightningHistory {
-  const history = createBrowserHistory({ window: win });
   let disposed = false;
   let snapshot = win.location.href;
+  let previousIndex = Number(win.history.state?.__TSR_index ?? 0);
   const notifyNavigation = () => {
     if (disposed) return;
     const next = win.location.href;
@@ -27,17 +48,40 @@ export function createLightningHistory(
     snapshot = next;
     onNavigate?.(next);
   };
+  const history = createHistory({
+    getLocation: () => browserLocation(win),
+    getLength: () => win.history.length,
+    pushState: (path, state) => win.history.pushState(state, '', path),
+    replaceState: (path, state) => win.history.replaceState(state, '', path),
+    go: (index) => win.history.go(index),
+    back: () => win.history.back(),
+    forward: () => win.history.forward(),
+    createHref: (path) => path,
+    flush: () => undefined,
+    destroy: () => {
+      win.removeEventListener('popstate', onPopState);
+      win.document.removeEventListener(NAVIGATION_EVENT, onBridgeNavigation);
+    },
+    notifyOnIndexChange: false,
+  });
   const unsubscribe = history.subscribe(notifyNavigation);
   const onBridgeNavigation = () => {
     if (disposed) return;
     if (win.location.href !== snapshot) history.notify({ type: 'REPLACE' });
   };
+  const onPopState = () => {
+    if (disposed) return;
+    const nextIndex = Number(win.history.state?.__TSR_index ?? previousIndex);
+    const delta = nextIndex - previousIndex;
+    previousIndex = nextIndex;
+    history.notify(delta < 0 ? { type: 'BACK' } : delta > 0 ? { type: 'FORWARD' } : { type: 'GO', index: delta });
+  };
+  win.addEventListener('popstate', onPopState);
   win.document.addEventListener(NAVIGATION_EVENT, onBridgeNavigation);
 
   const adapter = history as LightningHistory;
   const push = history.push.bind(history);
   const replace = history.replace.bind(history);
-  const destroy = history.destroy.bind(history);
   const subscribe = history.subscribe.bind(history);
   adapter.subscribe = (listener) => {
     const unsubscribeListener = subscribe(listener);
@@ -47,13 +91,13 @@ export function createLightningHistory(
   adapter.push = (path, state, navigateOpts) => {
     if (disposed) return;
     push(path, state, navigateOpts);
-    history.flush();
+    previousIndex = Number(history.location.state.__TSR_index ?? previousIndex);
     notifyNavigation();
   };
   adapter.replace = (path, state, navigateOpts) => {
     if (disposed) return;
     replace(path, state, navigateOpts);
-    history.flush();
+    previousIndex = Number(history.location.state.__TSR_index ?? previousIndex);
     notifyNavigation();
   };
   adapter.getSnapshot = () => snapshot;
@@ -67,8 +111,7 @@ export function createLightningHistory(
     if (disposed) return;
     disposed = true;
     unsubscribe();
-    win.document.removeEventListener(NAVIGATION_EVENT, onBridgeNavigation);
-    destroy();
+    history.destroy();
     history.subscribers.clear();
   };
   adapter.destroy = () => adapter.dispose();

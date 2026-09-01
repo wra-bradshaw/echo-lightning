@@ -35,6 +35,7 @@ export default defineContentScript({
     app.className = 'light';
     shadow.append(app);
     (document.documentElement || document.body).append(host);
+    await injectScript('/history-bridge.js').catch(() => undefined);
     const lightning = createLightningRuntime({
       window,
       sendMessage: (message) => runtimeApi.sendMessage(message),
@@ -42,7 +43,6 @@ export default defineContentScript({
       cleanup: () => host.remove(),
     });
     lightning.mount(app);
-    void injectScript('/history-bridge.js').catch(() => undefined);
     window.addEventListener(
       'pagehide',
       () => {
