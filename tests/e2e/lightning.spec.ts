@@ -296,11 +296,13 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   const playButton = page.getByRole('button', { name: 'Play' });
   if (await playButton.isVisible()) await playButton.click();
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
-  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video').click();
-  await expect(player).toHaveAttribute('data-mode', 'focus');
+  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"]').click();
+  await expect(player.getByTestId('main-stream').getByLabel('Camera 2')).toBeVisible();
+  await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-1"]')).toHaveCount(1);
+  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-1"]').click();
   await expect(player.getByTestId('main-stream').getByLabel('Camera 1')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
-  await player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video').click();
+  await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"]')).toHaveCount(1);
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   await expect(player.getByTestId('main-stream').locator('video')).toHaveJSProperty('muted', false);
   await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"] video')).toHaveJSProperty(

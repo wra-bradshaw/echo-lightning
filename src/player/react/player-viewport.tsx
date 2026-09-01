@@ -1,7 +1,8 @@
 import { ArrowLeft, CaretDown, Check, Pause, Play, SpeakerHigh, SpeakerSlash, Trash, X } from '@phosphor-icons/react';
 import { MotionConfig, motion, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
-import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { usePipDrag } from './use-pip-drag';
 import { usePipResize } from './use-pip-resize';
 import type { EchoGateway, PlayerProperties, PlayerSource, SyllabusItem } from '../../domain';
@@ -43,6 +44,10 @@ type PlayerViewportProps = {
   onUseOriginal: () => void;
   savedSelectedIds?: readonly string[];
   onSelectedIdsChange?: (ids: readonly string[]) => void;
+  savedPlayerState?: import('../core/player-state').PlayerState;
+  onPlayerStateChange?: (state: import('../core/player-state').PlayerState) => void;
+  savedPipSize?: import('../core/pip-placement').PipSize;
+  onPipSizeChange?: (size: import('../core/pip-placement').PipSize) => void;
   captionsEnabled: boolean;
   onCaptionsEnabledChange: (enabled: boolean) => void;
 };
@@ -74,12 +79,22 @@ export function PlayerViewport({
   onUseOriginal,
   savedSelectedIds,
   onSelectedIdsChange,
+  savedPlayerState,
+  onPlayerStateChange,
+  savedPipSize,
+  onPipSizeChange,
   captionsEnabled,
   onCaptionsEnabledChange,
 }: PlayerViewportProps) {
   const sources = properties.sources;
   const sourceIds = useMemo(() => sources.map((source) => source.id), [sources]);
-  const { state, dispatch } = usePlayerState(sourceIds, savedSelectedIds, onSelectedIdsChange);
+  const { state, dispatch } = usePlayerState(
+    sourceIds,
+    savedSelectedIds,
+    onSelectedIdsChange,
+    savedPlayerState,
+    onPlayerStateChange,
+  );
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -125,6 +140,10 @@ export function PlayerViewport({
     },
     [dispatch, state.audioId, state.mainId, state.mode],
   );
+  const handlePromote = useCallback(
+    (id: string) => dispatchPlayerAction({ type: 'promote', id }),
+    [dispatchPlayerAction],
+  );
   const duration = properties.durationSeconds ?? lesson.durationSeconds ?? 0;
   const { savePosition } = usePlaybackSync({
     gateway,
@@ -138,7 +157,10 @@ export function PlayerViewport({
     aspectRatios: activeSources.map((source) => aspectRatios[source.id]),
     gap: 12,
   });
-  const [pipSizeOverride, setPipSizeOverride] = useState<PipSize | null>(null);
+  const [pipSizeOverride, setPipSizeOverride] = useState<PipSize | null>(() => savedPipSize ?? null);
+  useLayoutEffect(() => {
+    setPipSizeOverride(savedPipSize ?? null);
+  }, [savedPipSize]);
   const defaultPipSize = useMemo(
     () => ({
       width: Math.min(320, Math.max(148, viewportSize.width * 0.22)),
@@ -156,9 +178,13 @@ export function PlayerViewport({
     const height = (width * 9) / 16;
     return { width, height };
   }, [defaultPipSize, pipSizeOverride, viewportSize.height, viewportSize.width]);
-  const handlePipResize = useCallback((size: PipSize) => {
-    setPipSizeOverride(size);
-  }, []);
+  const handlePipResize = useCallback(
+    (size: PipSize) => {
+      setPipSizeOverride(size);
+      onPipSizeChange?.(size);
+    },
+    [onPipSizeChange],
+  );
   const pipIds = state.selectedIds.filter((id) => id !== state.mainId);
   const pipPositions = useMemo(
     () => placePipStacks(pipIds, state.pipPositions, viewportSize, pipSize, 16, 12),
@@ -437,8 +463,7 @@ export function PlayerViewport({
 
         <div className="relative min-h-0 flex-1 bg-black">
           {state.mode === 'grid' ? (
-            <motion.div
-              layout
+            <div
               className="absolute inset-4 grid min-h-0 min-w-0"
               data-testid="camera-grid"
               style={{
@@ -448,7 +473,7 @@ export function PlayerViewport({
               }}
             >
               {activeSources.map((source) => (
-                <motion.div key={source.id} layout layoutId={`stream-${source.id}`} className="min-h-0 min-w-0">
+                <div key={source.id} className="min-h-0 min-w-0">
                   <VideoStream
                     source={source}
                     autoPlay
@@ -475,9 +500,9 @@ export function PlayerViewport({
                     showAudioControl
                     controlsVisible={controls.visible}
                   />
-                </motion.div>
+                </div>
               ))}
-            </motion.div>
+            </div>
           ) : (
             <FocusLayout
               mainSource={mainSource}
@@ -497,6 +522,7 @@ export function PlayerViewport({
               onPause={handlePause}
               onTimeUpdate={recordPlaybackPosition}
               onVideoClick={togglePlayback}
+              onPromote={handlePromote}
               onMetadata={(id, element) => {
                 if (element.videoWidth && element.videoHeight) {
                   setAspectRatios((current) => ({ ...current, [id]: element.videoWidth / element.videoHeight }));
@@ -760,6 +786,7 @@ function FocusLayout({
   onPause,
   onTimeUpdate,
   onVideoClick,
+  onPromote,
   onMetadata,
   onPipDrop,
   onResize,
@@ -782,6 +809,7 @@ function FocusLayout({
   onPause: (id: string) => void;
   onTimeUpdate: (element: HTMLVideoElement) => void;
   onVideoClick: () => void;
+  onPromote: (id: string) => void;
   onMetadata: (id: string, element: HTMLVideoElement) => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   onResize: (size: PipSize) => void;
@@ -790,12 +818,7 @@ function FocusLayout({
   if (!mainSource) return null;
   return (
     <>
-      <motion.div
-        layout
-        layoutId={`stream-${mainSource.id}`}
-        className="absolute inset-0 min-h-0 min-w-0 p-3 sm:p-5"
-        data-testid="main-stream"
-      >
+      <div className="absolute inset-0 min-h-0 min-w-0 p-3 sm:p-5" data-testid="main-stream">
         <VideoStream
           source={mainSource}
           autoPlay
@@ -813,7 +836,7 @@ function FocusLayout({
           onMetadata={(element) => onMetadata(mainSource.id, element)}
           controlsVisible={controlsVisible}
         />
-      </motion.div>
+      </div>
       {pipSources.map((source) => {
         const position = pipPositions[source.id] ?? { corner: 'bottom-right', index: 0 };
         const coordinates = getPipCoordinates(position, viewportSize, pipSize, 16, 12);
@@ -824,7 +847,8 @@ function FocusLayout({
             coordinates={coordinates}
             pipSize={pipSize}
             viewportSize={viewportSize}
-            onVideoClick={onVideoClick}
+            position={position}
+            onPromote={onPromote}
             onPipDrop={onPipDrop}
             onResize={onResize}
           >
@@ -866,7 +890,8 @@ function DraggablePip({
   coordinates,
   pipSize,
   viewportSize,
-  onVideoClick,
+  position,
+  onPromote,
   onPipDrop,
   onResize,
   children,
@@ -875,14 +900,33 @@ function DraggablePip({
   coordinates: { x: number; y: number };
   pipSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
-  onVideoClick: () => void;
+  position: PipPosition;
+  onPromote: (id: string) => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   onResize: (size: PipSize) => void;
   children: React.ReactNode;
 }) {
   const { isDragging, displayCoordinates, handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel } =
-    usePipDrag(coordinates, pipSize, viewportSize, onPipDrop, source.id, onVideoClick);
-  const resizeHandle = usePipResize(pipSize, viewportSize, onResize);
+    usePipDrag(coordinates, pipSize, viewportSize, onPipDrop, source.id, () => onPromote(source.id));
+  const resizeHandle = usePipResize(pipSize, viewportSize, position.corner, onResize);
+  const handleConfig = {
+    'top-left': {
+      className: 'right-0 bottom-0 cursor-nwse-resize items-end justify-end',
+      border: 'border-r-2 border-b-2',
+    },
+    'top-right': {
+      className: 'left-0 bottom-0 cursor-nesw-resize items-end justify-start',
+      border: 'border-l-2 border-b-2',
+    },
+    'bottom-left': {
+      className: 'right-0 top-0 cursor-nesw-resize items-start justify-end',
+      border: 'border-r-2 border-t-2',
+    },
+    'bottom-right': {
+      className: 'left-0 top-0 cursor-nwse-resize items-start justify-start',
+      border: 'border-l-2 border-t-2',
+    },
+  }[position.corner];
 
   const style: CSSProperties = {
     left: displayCoordinates.x,
@@ -894,7 +938,6 @@ function DraggablePip({
   return (
     <motion.div
       layout={!isDragging}
-      layoutId={`stream-${source.id}`}
       className="absolute z-[70] overflow-hidden rounded-xl border-2 border-white/70 bg-black shadow-2xl focus-within:ring-2 focus-within:ring-white"
       style={style}
       data-testid="pip-stream"
@@ -905,16 +948,18 @@ function DraggablePip({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
     >
       {children}
       <div
         data-testid="pip-resize-handle"
-        className="absolute right-0 bottom-0 z-10 flex h-6 w-6 cursor-nwse-resize touch-none items-end justify-end p-1"
+        className={cn('absolute z-10 flex h-6 w-6 touch-none p-1', handleConfig.className)}
         onPointerDown={resizeHandle.onPointerDown}
         onPointerMove={resizeHandle.onPointerMove}
         onPointerUp={resizeHandle.onPointerUp}
+        onLostPointerCapture={resizeHandle.onLostPointerCapture}
       >
-        <div className="h-3 w-3 rounded-sm border-r-2 border-b-2 border-white/80 opacity-70" />
+        <div className={cn('h-3 w-3 rounded-sm border-white/80 opacity-70', handleConfig.border)} />
       </div>
     </motion.div>
   );
