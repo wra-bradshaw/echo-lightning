@@ -48,4 +48,16 @@ describe('lightning settings store', () => {
     await invalidStore.persist.rehydrate();
     expect(invalidStore.getState()).toMatchObject({ theme: 'light', captionsEnabled: true, playbackRate: 1 });
   });
+
+  it('persists per-media playback progress and clamps invalid values', async () => {
+    const backing = memoryStorage();
+    const store = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
+    store.getState().setPlaybackProgress('media-1', 125, 300);
+    store.getState().setPlaybackProgress('media-1', 500, 300);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const recreated = createLightningSettingsStore({ storage: backing.storage, systemTheme: 'light' });
+    await recreated.persist.rehydrate();
+    expect(recreated.getState().progress).toEqual({ 'media-1': { position: 300, duration: 300 } });
+  });
 });

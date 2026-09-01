@@ -16,6 +16,7 @@ async function fixture(runtime = 'runtime') {
   await import('node:fs/promises').then(({ mkdir }) => mkdir(path.join(root, 'content-scripts')));
   await writeFile(path.join(root, 'content-scripts/content-bootstrap.js'), 'bootstrap');
   await writeFile(path.join(root, 'content-scripts/lightning-runtime.js'), runtime);
+  await writeFile(path.join(root, 'player-runtime.js'), 'player');
   return root;
 }
 

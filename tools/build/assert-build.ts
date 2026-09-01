@@ -31,6 +31,7 @@ export async function assertBuildArtifacts(outputRoot: string): Promise<void> {
   if (/hls(?:\.js)?/i.test(`${bootstrapText}\n${runtimeText}`)) {
     throw new Error('HLS.js must not enter the shell bundles before a player entry consumes it.');
   }
+  await stat(path.join(outputRoot, 'player-runtime.js'));
   const files = await readdir(outputRoot, { recursive: true });
   if (!files.some((file) => file.endsWith('content-bootstrap.js'))) throw new Error('Bootstrap output is missing.');
   if (!files.some((file) => file.endsWith('lightning-runtime.js'))) throw new Error('Runtime output is missing.');

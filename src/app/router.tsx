@@ -9,8 +9,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { EchoGateway } from '../domain';
 import type { LightningSettingsStore } from '../features/settings';
 import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo';
-import { Card, CardContent, CardHeader, CardTitle } from '../shared/ui/card';
 import { AppShell } from './app-shell';
+import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionClassroomPage, SectionPage } from './pages';
 
 export type LightningRouterContext = {
   gateway: EchoGateway;
@@ -28,68 +28,6 @@ function UnsupportedPage() {
   );
 }
 
-function CoursesPage() {
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Your courses</h1>
-      <p className="text-muted-foreground">Choose a course to continue.</p>
-    </>
-  );
-}
-
-function CourseDetailsPage() {
-  const { courseId } = courseDetailsRoute.useParams();
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Course {courseId}</h1>
-      <p className="text-muted-foreground">Choose a lecture to continue.</p>
-    </>
-  );
-}
-
-function SectionPage() {
-  const { sectionId } = sectionRoute.useParams();
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Section {sectionId}</h1>
-      <p className="text-muted-foreground">Section syllabus and recorded lectures.</p>
-    </>
-  );
-}
-
-function ClassroomPage() {
-  const { lessonId } = classroomRoute.useParams();
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Lesson {lessonId}</h1>
-      <ClassroomCard />
-    </>
-  );
-}
-
-function SectionClassroomPage() {
-  const { lessonId } = sectionClassroomRoute.useParams();
-  return (
-    <>
-      <h1 className="text-2xl font-semibold">Lesson {lessonId}</h1>
-      <ClassroomCard />
-    </>
-  );
-}
-
-function ClassroomCard() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recorded lecture</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground text-sm">Player and transcript support will appear here.</p>
-      </CardContent>
-    </Card>
-  );
-}
-
 const rootRoute = createRootRouteWithContext<LightningRouterContext>()({
   component: () => {
     const context = rootRoute.useRouteContext();
@@ -102,23 +40,23 @@ const rootRoute = createRootRouteWithContext<LightningRouterContext>()({
   notFoundComponent: UnsupportedPage,
 });
 
-const coursesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/courses', component: CoursesPage });
-const courseDetailsRoute = createRoute({
+export const coursesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/courses', component: CoursesPage });
+export const courseDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/courses/$courseId',
   component: CourseDetailsPage,
 });
-const sectionRoute = createRoute({
+export const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sections/$sectionId',
   component: SectionPage,
 });
-const classroomRoute = createRoute({
+export const classroomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/classrooms/$lessonId',
   component: ClassroomPage,
 });
-const sectionClassroomRoute = createRoute({
+export const sectionClassroomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/sections/$sectionId/classrooms/$lessonId',
   component: SectionClassroomPage,

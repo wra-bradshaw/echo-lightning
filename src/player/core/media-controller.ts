@@ -6,6 +6,8 @@ export class HlsMediaController {
   private instance?: Hls;
   private media?: HTMLMediaElement;
 
+  constructor(private readonly onFatalError?: () => void) {}
+
   static isSupported(): boolean {
     return Hls.isSupported();
   }
@@ -14,7 +16,16 @@ export class HlsMediaController {
     this.destroy();
     this.media = media;
     if (Hls.isSupported()) {
-      this.instance = new Hls({ enableWorker: true, lowLatencyMode: false });
+      this.instance = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = true;
+        },
+      });
+      this.instance.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) this.onFatalError?.();
+      });
       this.instance.attachMedia(media);
     }
   }

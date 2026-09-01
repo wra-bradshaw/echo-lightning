@@ -1,7 +1,9 @@
 export { PlayerAnalytics } from './analytics';
 export type { AnalyticsTransport, PlayerAnalyticsEvent } from './analytics';
-export { HlsMediaController } from './hls';
-export type { HlsSource } from './hls';
+export { HlsMediaController } from './media-controller';
+export type { HlsSource } from './media-controller';
 export { shouldCorrectMediaDrift, synchronizeSecondaryVideo } from './media-sync';
 export { createPlayerSession } from './session';
 export type { PlayerSession, PlayerSessionCallbacks, PlayerSessionStopReason } from './session';
+export { PLAYER_COMMAND_EVENT, PLAYER_RUNTIME_READY_EVENT, PLAYER_STATUS_EVENT } from './player-events';
+export type { PlayerCommand, PlayerStatus } from './player-events';
