@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { defineConfig } from '@playwright/test';
 
 if (existsSync('.env')) process.loadEnvFile('.env');
-process.env.HEADED = '1';
+process.env.HEADED = process.env.ECHO360_DEBUG_HEADLESS === '0' ? '1' : '0';
 
 export default defineConfig({
   testDir: './tests/e2e',
