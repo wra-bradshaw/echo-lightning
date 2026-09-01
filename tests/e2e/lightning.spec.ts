@@ -176,10 +176,38 @@ test('loads the happy path from courses through a resumable multi-camera lecture
   await expect(page.getByTestId('camera-grid').getByLabel('Camera 2')).toBeVisible();
   await page.getByRole('button', { name: 'Add Camera 3' }).click();
   await expect(page.getByTestId('camera-grid').getByLabel('Camera 3')).toBeVisible();
+  const cameraGrid = page.getByTestId('camera-grid');
+  await page.getByRole('button', { name: 'Move Camera 3 left' }).click();
+  await expect
+    .poll(() =>
+      cameraGrid.locator('video').evaluateAll((videos) => videos.map((video) => video.getAttribute('aria-label'))),
+    )
+    .toEqual(['Camera 1', 'Camera 3', 'Camera 2']);
+  const tile = cameraGrid.getByTestId('camera-tile').first();
+  const before = await tile.boundingBox();
+  if (!before) throw new Error('Camera tile did not have a browser bounding box.');
+  await page.mouse.move(before.x + before.width - 2, before.y + before.height - 2);
+  await page.mouse.down();
+  await page.mouse.move(before.x + before.width + 80, before.y + before.height + 40);
+  await page.mouse.up();
+  await expect.poll(async () => (await tile.boundingBox())?.width ?? 0).toBeGreaterThan(before.width + 20);
   await page.getByRole('button', { name: 'Remove Camera 2' }).click();
-  await expect(page.getByTestId('camera-grid').getByLabel('Camera 2')).toHaveCount(0);
+  await expect(cameraGrid.getByLabel('Camera 2')).toHaveCount(0);
   await page.getByRole('button', { name: 'Captions on' }).click();
   await expect(page.getByRole('button', { name: 'Captions off' })).toBeVisible();
+  await expect
+    .poll(() =>
+      cameraGrid
+        .getByLabel('Camera 1')
+        .locator('xpath=./track')
+        .evaluate((track) => (track as HTMLTrackElement).track.mode),
+    )
+    .toBe('hidden');
+  await page.getByLabel('Playback speed').selectOption('1.5');
+  await expect(page.getByLabel('Playback speed')).toHaveValue('1.5');
+  await expect
+    .poll(() => cameraGrid.getByLabel('Camera 1').evaluate((video) => (video as HTMLVideoElement).playbackRate))
+    .toBe(1.5);
   await page.getByRole('button', { name: 'Play' }).click();
   await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   await setStockMode(serviceWorker, tabId);

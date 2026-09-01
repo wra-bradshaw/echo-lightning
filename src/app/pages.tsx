@@ -606,6 +606,7 @@ function VideoTile({
   );
   return (
     <div
+      data-testid="camera-tile"
       className="group relative min-h-48 overflow-auto rounded-lg border bg-black"
       draggable
       onDragStart={onDragStart}
