@@ -614,6 +614,7 @@ function VideoTile({
       <video
         ref={ref}
         className="aspect-video h-full min-h-48 w-full object-contain"
+        crossOrigin="use-credentials"
         muted
         playsInline
         preload="metadata"
