@@ -35,7 +35,7 @@ async function leavePagePaused(
       }
       await pauseForCli(page);
       await expect(page.locator('#echo-lightning-host')).toBeVisible();
-      await expect(page.getByText('Lightning active')).toBeVisible();
+      await expect(page.getByText('Lightning active')).toHaveCount(0);
       await pauseForCli(page);
     }
 

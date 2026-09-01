@@ -28,9 +28,6 @@ export function AppShell({ children, onUseOriginal }: { children: ReactNode; onU
           Echo360 Lightning
         </Link>
         <div className="flex items-center gap-2">
-          <span className="bg-primary/10 text-primary rounded-full px-2 py-1 text-xs font-medium">
-            Lightning active
-          </span>
           <Button variant="outline" size="sm" onClick={() => onUseOriginal(currentUrl)}>
             <ArrowSquareOut className="size-4" />
             Use original Echo UI

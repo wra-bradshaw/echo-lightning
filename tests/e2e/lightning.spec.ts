@@ -16,7 +16,7 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
-  await expect(page.getByText('Lightning active')).toBeVisible();
+  await expect(page.getByText('Lightning active')).toHaveCount(0);
   await expect(page.locator('#lightning-app.dark')).toBeVisible();
   await expect(page.getByRole('button', { name: /Switch to (dark|light) mode/ })).toHaveCount(0);
   await expect
@@ -72,7 +72,7 @@ test('follows Echo history changes without a reload', async ({ page, serviceWork
   await setReplacementMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
-  await expect(page.getByText('Lightning active')).toBeVisible();
+  await expect(page.getByText('Lightning active')).toHaveCount(0);
   await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
   await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
 
