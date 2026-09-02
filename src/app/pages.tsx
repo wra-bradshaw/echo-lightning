@@ -62,7 +62,7 @@ export function CoursesPage() {
   const [search, setSearch] = useState('');
   const courses = useMemo(() => {
     const normalized = search.trim().toLowerCase();
-    return [...(coursesQuery.data ?? [])]
+    return (coursesQuery.data ?? [])
       .filter((course) =>
         normalized
           ? [course.title, course.code, course.institution, course.term].some((value) =>
@@ -70,7 +70,7 @@ export function CoursesPage() {
             )
           : true,
       )
-      .sort((left, right) => {
+      .toSorted((left, right) => {
         if (left.isActive !== right.isActive) return Number(right.isActive ?? false) - Number(left.isActive ?? false);
         const termOrder = (right.termStart ?? '').localeCompare(left.termStart ?? '');
         return termOrder || left.title.localeCompare(right.title);
@@ -161,10 +161,7 @@ export function SectionPage() {
   const syllabusQuery = useSectionSyllabus(gateway, sectionId);
   const course = coursesQuery.data?.find((candidate) => candidate.sectionId === sectionId);
   const lessons = useMemo(
-    () =>
-      [...(syllabusQuery.data ?? [])].sort((left, right) =>
-        (left.startTime ?? '').localeCompare(right.startTime ?? ''),
-      ),
+    () => (syllabusQuery.data ?? []).toSorted((left, right) => (left.startTime ?? '').localeCompare(right.startTime ?? '')),
     [syllabusQuery.data],
   );
   const videoProgress = useSectionVideoProgress(gateway, lessons);

@@ -14,7 +14,7 @@ export function normalizePlayerProperties(payload: PlayerPropertiesPayload) {
   );
   const sourceGroups = videoGroups.length ? videoGroups : [...grouped.values()];
   const sources = sourceGroups.flatMap((group, index) => {
-    const source = [...group].sort(
+    const source = group.toSorted(
       (left, right) =>
         Number(right.trackType?.includes('Audio') ?? false) - Number(left.trackType?.includes('Audio') ?? false),
     )[0];
