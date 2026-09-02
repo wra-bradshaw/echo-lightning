@@ -1,4 +1,32 @@
-minimumReleaseAge: 10080
+minimumReleaseAge: 7200
 minimumReleaseAgeExclude:
   - shadcn@4.20.1
+  - "@csstools/css-color-parser@4.2.2"
+  - "@csstools/css-syntax-patches-for-csstree@1.1.10"
+  - "@typescript-eslint/eslint-plugin@8.69.0"
+  - "@typescript-eslint/parser@8.69.0"
+  - "@typescript-eslint/project-service@8.69.0"
+  - "@typescript-eslint/scope-manager@8.69.0"
+  - "@typescript-eslint/tsconfig-utils@8.69.0"
+  - "@typescript-eslint/type-utils@8.69.0"
+  - "@typescript-eslint/types@8.69.0"
+  - "@typescript-eslint/typescript-estree@8.69.0"
+  - "@typescript-eslint/utils@8.69.0"
+  - "@typescript-eslint/visitor-keys@8.69.0"
+  - ast-types@0.16.3
+  - electron-to-chromium@1.5.419
+  - express-rate-limit@8.7.0
+  - fastq@1.20.3
+  - ignore@7.0.8
+  - ip-address@10.7.0
+  - knip@6.34.0
+  - open@11.0.2
+  - powershell-utils@0.2.1
+  - qs@6.16.0
+  - systeminformation@5.33.7
+  - typescript-eslint@8.69.0
+  - unbash@4.0.11
+  - zod@4.5.4
 trustPolicy: no-downgrade
+trustPolicyExclude:
+  - semver@6.3.1
