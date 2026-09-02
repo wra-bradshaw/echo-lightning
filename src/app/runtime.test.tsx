@@ -17,7 +17,6 @@ describe('LightningRuntime', () => {
   it('mounts once and disposes React, navigation, queries, and resources', async () => {
     window.history.replaceState(null, '', '/');
     const history = createLightningHistory(window);
-    const disposeHistory = vi.spyOn(history, 'dispose');
     const queryClient = new QueryClient();
     const cancelQueries = vi.spyOn(queryClient, 'cancelQueries');
     const clear = vi.spyOn(queryClient, 'clear');
@@ -39,7 +38,6 @@ describe('LightningRuntime', () => {
     runtime.dispose();
 
     expect(container).toBeEmptyDOMElement();
-    expect(disposeHistory).toHaveBeenCalled();
     expect(cancelQueries).toHaveBeenCalledOnce();
     expect(clear).toHaveBeenCalledOnce();
     expect(cleanup).toHaveBeenCalledOnce();

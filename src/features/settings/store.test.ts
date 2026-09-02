@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createLightningSettingsStore, SETTINGS_STORAGE_KEY, type SettingsStorage } from './store';
 
@@ -23,7 +24,7 @@ describe('lightning settings store', () => {
     const store = createLightningSettingsStore({ storage: first.storage });
     store.getState().setCaptionsEnabled(false);
     store.getState().setPlaybackRate(1.5);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => expect(first.values.has(SETTINGS_STORAGE_KEY)).toBe(true));
     const persisted = JSON.parse(first.values.get(SETTINGS_STORAGE_KEY) ?? '{}') as { state?: Record<string, unknown> };
     expect(persisted.state).not.toHaveProperty('theme');
     const recreated = createLightningSettingsStore({ storage: first.storage });
@@ -62,7 +63,7 @@ describe('lightning settings store', () => {
     const store = createLightningSettingsStore({ storage: backing.storage });
 
     store.getState().setSelectedStreamIds('section-a', ['camera-2']);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => expect(backing.values.has(SETTINGS_STORAGE_KEY)).toBe(true));
 
     const recreated = createLightningSettingsStore({ storage: backing.storage });
     await recreated.persist.rehydrate();
