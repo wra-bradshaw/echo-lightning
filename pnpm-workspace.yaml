@@ -1,1 +1,4 @@
-minimumReleaseAge: 0
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - shadcn@4.20.1
+trustPolicy: no-downgrade
