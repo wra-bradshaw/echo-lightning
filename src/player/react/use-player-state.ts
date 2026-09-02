@@ -1,7 +1,7 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { createPlayerState, reducePlayerState, type PlayerAction, type PlayerState } from '../core/player-state';
 import { restoreSelectedStreamIds } from '../core/preferences';
+import { usePersistedState } from './use-persisted-state';
 
 function restorePlayerState(
   availableIds: readonly string[],
@@ -43,36 +43,25 @@ export function usePlayerState(
     () => restorePlayerState(availableIds, savedState, savedIds),
     [availableIds, savedIds, savedState],
   );
-  const [state, setState] = useState<PlayerState>(() => initialState);
-  const selectionChangeRef = useRef(onSelectionChange);
-  const stateChangeRef = useRef(onStateChange);
-  const hasHydrated = useRef(false);
+  const savedPlayerState = useMemo(
+    () => restorePlayerState(availableIds, savedState, savedIds),
+    [availableIds, savedIds, savedState],
+  );
+  const persistStateChange = useCallback(
+    (state: PlayerState) => {
+      onSelectionChange?.(state.selectedIds);
+      onStateChange?.(state);
+    },
+    [onSelectionChange, onStateChange],
+  );
+  const [state, setState] = usePersistedState(savedPlayerState, initialState, (value) => value, persistStateChange);
 
-  useLayoutEffect(() => {
-    selectionChangeRef.current = onSelectionChange;
-  }, [onSelectionChange]);
-
-  useLayoutEffect(() => {
-    stateChangeRef.current = onStateChange;
-  }, [onStateChange]);
-
-  useLayoutEffect(() => {
-    if (!hasHydrated.current) {
-      hasHydrated.current = true;
-      return;
-    }
-    selectionChangeRef.current?.(state.selectedIds);
-    stateChangeRef.current?.(state);
-  }, [state]);
-
-  useLayoutEffect(() => {
-    setState(restorePlayerState(availableIds, savedState, savedIds));
-    hasHydrated.current = false;
-  }, [availableIds, savedIds, savedState]);
-
-  const dispatch = useCallback((action: PlayerAction) => {
-    setState((current) => reducePlayerState(current, action));
-  }, []);
+  const dispatch = useCallback(
+    (action: PlayerAction) => {
+      setState((current) => reducePlayerState(current, action));
+    },
+    [setState],
+  );
 
   return { state, dispatch };
 }

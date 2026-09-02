@@ -10,7 +10,7 @@ import {
   useSectionSyllabus,
   useSectionVideoProgress,
 } from '../features/sections';
-import { useLightningSettings } from '../features/settings';
+import { useLightningSettingsBundle } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Progress } from '../shared/ui';
@@ -299,32 +299,25 @@ function LessonPlayer({
 }) {
   const media = lesson.media.find((item) => item.available !== false && !item.audioOnly) ?? lesson.media[0];
   const playerQuery = usePlayerProperties(gateway, 'lessons', lesson.id, media?.id ?? '', Boolean(media));
-  const savedSelectedIds = useLightningSettings((settings) =>
-    sectionId ? settings.selectedStreamIds[sectionId] : undefined,
-  );
-  const setSelectedStreamIds = useLightningSettings((settings) => settings.setSelectedStreamIds);
-  const savedPlayerState = useLightningSettings((settings) =>
-    sectionId ? settings.playerStateBySection[sectionId] : undefined,
-  );
-  const setPlayerState = useLightningSettings((settings) => settings.setPlayerState);
-  const savedPipSize = useLightningSettings((settings) =>
-    sectionId ? settings.pipSizeBySection[sectionId] : undefined,
-  );
-  const setPipSize = useLightningSettings((settings) => settings.setPipSize);
-  const savedVolume = useLightningSettings((settings) => (sectionId ? settings.volumeBySection[sectionId] : undefined));
-  const setVolumeForSection = useLightningSettings((settings) => settings.setVolumeForSection);
-  const savedPlaybackRate = useLightningSettings((settings) =>
-    sectionId ? (settings.playbackRateBySection[sectionId] ?? settings.playbackRate) : settings.playbackRate,
-  );
-  const setPlaybackRateForSection = useLightningSettings((settings) => settings.setPlaybackRateForSection);
-  const setPlaybackRateGlobal = useLightningSettings((settings) => settings.setPlaybackRate);
-  const savedCaptionsEnabled = useLightningSettings((settings) =>
-    sectionId ? (settings.captionsEnabledBySection[sectionId] ?? settings.captionsEnabled) : settings.captionsEnabled,
-  );
-  const setCaptionsEnabledForSection = useLightningSettings((settings) => settings.setCaptionsEnabledForSection);
-  const setCaptionsEnabledGlobal = useLightningSettings((settings) => settings.setCaptionsEnabled);
-  const savedIsMuted = useLightningSettings((settings) => (sectionId ? settings.mutedBySection[sectionId] : undefined));
-  const setMutedForSection = useLightningSettings((settings) => settings.setMutedForSection);
+  const settings = useLightningSettingsBundle(sectionId);
+  const {
+    savedSelectedIds,
+    setSelectedStreamIds,
+    savedPlayerState,
+    setPlayerState,
+    savedPipSize,
+    setPipSize,
+    savedVolume,
+    setVolumeForSection,
+    savedPlaybackRate,
+    setPlaybackRateForSection,
+    setPlaybackRateGlobal,
+    savedCaptionsEnabled,
+    setCaptionsEnabledForSection,
+    setCaptionsEnabledGlobal,
+    savedIsMuted,
+    setMutedForSection,
+  } = settings;
   return (
     <div className="h-full min-h-0 overflow-hidden">
       {playerQuery.isLoading ? <ClassroomMessage label="Preparing video sources…" /> : null}
@@ -337,26 +330,26 @@ function LessonPlayer({
           lesson={lesson}
           properties={playerQuery.data}
           sectionId={sectionId}
-          savedSelectedIds={savedSelectedIds}
-          onSelectedIdsChange={sectionId ? (ids) => setSelectedStreamIds(sectionId, ids) : undefined}
-          savedPlayerState={savedPlayerState}
-          onPlayerStateChange={sectionId ? (state) => setPlayerState(sectionId, state) : undefined}
-          savedPipSize={savedPipSize}
-          onPipSizeChange={sectionId ? (size) => setPipSize(sectionId, size) : undefined}
-          savedVolume={savedVolume}
-          onVolumeChange={sectionId ? (volume) => setVolumeForSection(sectionId, volume) : undefined}
-          savedPlaybackRate={savedPlaybackRate}
-          onPlaybackRateChange={
-            sectionId ? (rate) => setPlaybackRateForSection(sectionId, rate) : (rate) => setPlaybackRateGlobal(rate)
-          }
-          savedCaptionsEnabled={savedCaptionsEnabled}
-          onCaptionsEnabledChange={
-            sectionId
+          settings={{
+            savedSelectedIds,
+            onSelectedIdsChange: sectionId ? (ids) => setSelectedStreamIds(sectionId, ids) : undefined,
+            savedPlayerState,
+            onPlayerStateChange: sectionId ? (state) => setPlayerState(sectionId, state) : undefined,
+            savedPipSize,
+            onPipSizeChange: sectionId ? (size) => setPipSize(sectionId, size) : undefined,
+            savedVolume,
+            onVolumeChange: sectionId ? (volume) => setVolumeForSection(sectionId, volume) : undefined,
+            savedPlaybackRate,
+            onPlaybackRateChange: sectionId
+              ? (rate) => setPlaybackRateForSection(sectionId, rate)
+              : (rate) => setPlaybackRateGlobal(rate),
+            savedCaptionsEnabled,
+            onCaptionsEnabledChange: sectionId
               ? (enabled) => setCaptionsEnabledForSection(sectionId, enabled)
-              : (enabled) => setCaptionsEnabledGlobal(enabled)
-          }
-          savedIsMuted={savedIsMuted}
-          onIsMutedChange={sectionId ? (muted) => setMutedForSection(sectionId, muted) : undefined}
+              : (enabled) => setCaptionsEnabledGlobal(enabled),
+            savedIsMuted,
+            onIsMutedChange: sectionId ? (muted) => setMutedForSection(sectionId, muted) : undefined,
+          }}
         />
       ) : null}
     </div>

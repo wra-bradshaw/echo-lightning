@@ -12,8 +12,7 @@ import {
 } from '@phosphor-icons/react';
 import { MotionConfig, motion, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
-/* eslint-disable react-hooks/set-state-in-effect */
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { usePipDrag } from './use-pip-drag';
 import { usePipResize } from './use-pip-resize';
 import type { EchoGateway, PlayerProperties, PlayerSource, SyllabusItem } from '../../domain';
@@ -50,15 +49,12 @@ import { usePersistedVolume } from './use-persisted-volume';
 import { usePlayerHotkeys } from './use-player-hotkeys';
 import { usePlaybackSync } from './use-playback-sync';
 import { usePlayerState } from './use-player-state';
+import { usePersistedState } from './use-persisted-state';
 import { useVideoSource } from './use-video-source';
 import { Button, Slider, Tabs, TabsList, TabsTrigger } from '../../shared/ui';
 import { cn } from '../../shared/lib/cn';
 
-type PlayerViewportProps = {
-  gateway: EchoGateway;
-  lesson: SyllabusItem;
-  properties: PlayerProperties;
-  sectionId?: string;
+export type PersistedPlayerSettings = {
   savedSelectedIds?: readonly string[];
   onSelectedIdsChange?: (ids: readonly string[]) => void;
   savedPlayerState?: import('../core/player-state').PlayerState;
@@ -73,8 +69,14 @@ type PlayerViewportProps = {
   onCaptionsEnabledChange?: (enabled: boolean) => void;
   savedIsMuted?: boolean;
   onIsMutedChange?: (muted: boolean) => void;
-  captionsEnabled?: boolean;
-  onCaptionsEnabledChangeLegacy?: (enabled: boolean) => void;
+};
+
+type PlayerViewportProps = {
+  gateway: EchoGateway;
+  lesson: SyllabusItem;
+  properties: PlayerProperties;
+  sectionId?: string;
+  settings: PersistedPlayerSettings;
 };
 
 type VideoElements = Record<string, HTMLVideoElement>;
@@ -107,28 +109,23 @@ function sourceById(sources: readonly PlayerSource[], ids: readonly string[]): P
   });
 }
 
-export function PlayerViewport({
-  gateway,
-  lesson,
-  properties,
-  sectionId,
-  savedSelectedIds,
-  onSelectedIdsChange,
-  savedPlayerState,
-  onPlayerStateChange,
-  savedPipSize,
-  onPipSizeChange,
-  savedVolume,
-  onVolumeChange,
-  savedPlaybackRate,
-  onPlaybackRateChange,
-  savedCaptionsEnabled,
-  onCaptionsEnabledChange,
-  savedIsMuted,
-  onIsMutedChange,
-  captionsEnabled: legacyCaptionsEnabled,
-  onCaptionsEnabledChangeLegacy,
-}: PlayerViewportProps) {
+export function PlayerViewport({ gateway, lesson, properties, sectionId, settings }: PlayerViewportProps) {
+  const {
+    savedSelectedIds,
+    onSelectedIdsChange,
+    savedPlayerState,
+    onPlayerStateChange,
+    savedPipSize,
+    onPipSizeChange,
+    savedVolume,
+    onVolumeChange,
+    savedPlaybackRate,
+    onPlaybackRateChange,
+    savedCaptionsEnabled,
+    onCaptionsEnabledChange,
+    savedIsMuted,
+    onIsMutedChange,
+  } = settings;
   const sources = properties.sources;
   const sourceIds = useMemo(() => sources.map((source) => source.id), [sources]);
   const { state, dispatch } = usePlayerState(
@@ -141,11 +138,9 @@ export function PlayerViewport({
   const [isPlaying, setIsPlaying] = useState(true);
   const [volume, setVolume] = usePersistedVolume(savedVolume, onVolumeChange);
   const [playbackRate, setPlaybackRate] = usePersistedPlaybackRate(savedPlaybackRate, onPlaybackRateChange);
-  const resolvedCaptionsEnabled = savedCaptionsEnabled ?? legacyCaptionsEnabled;
-  const resolvedOnCaptionsChange = onCaptionsEnabledChange ?? onCaptionsEnabledChangeLegacy;
   const [captionsEnabled, setCaptionsEnabled] = usePersistedCaptionsEnabled(
-    resolvedCaptionsEnabled,
-    resolvedOnCaptionsChange,
+    savedCaptionsEnabled,
+    onCaptionsEnabledChange,
   );
   const [isMuted, setIsMuted] = usePersistedMuted(savedIsMuted, onIsMutedChange);
   const [playbackPosition, setPlaybackPosition] = useState(properties.positionSeconds);
@@ -216,10 +211,7 @@ export function PlayerViewport({
     aspectRatios: activeSources.map((source) => aspectRatios[source.id]),
     gap: 0,
   });
-  const [pipSizeOverride, setPipSizeOverride] = useState<PipSize | null>(() => savedPipSize ?? null);
-  useLayoutEffect(() => {
-    setPipSizeOverride(savedPipSize ?? null);
-  }, [savedPipSize]);
+  const [pipSizeOverride, setPipSizeOverride] = usePersistedState(savedPipSize ?? null, null, (value) => value);
   const defaultPipSize = useMemo(
     () => ({
       width: Math.min(320, Math.max(148, viewportSize.width * 0.22)),
@@ -242,7 +234,7 @@ export function PlayerViewport({
       setPipSizeOverride(size);
       onPipSizeChange?.(size);
     },
-    [onPipSizeChange],
+    [onPipSizeChange, setPipSizeOverride],
   );
   const pipIds = state.selectedIds.filter((id) => id !== state.mainId);
   const pipPositions = useMemo(

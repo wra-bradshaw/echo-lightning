@@ -25,3 +25,32 @@ export function useLightningSettings<T>(selector: (state: LightningSettingsState
     () => selector(store.getState()),
   );
 }
+
+export function useLightningSettingsBundle(sectionId?: string) {
+  const settings = useLightningSettings((state) => state);
+  return useMemo(
+    () => ({
+      savedSelectedIds: sectionId ? settings.selectedStreamIds[sectionId] : undefined,
+      setSelectedStreamIds: settings.setSelectedStreamIds,
+      savedPlayerState: sectionId ? settings.playerStateBySection[sectionId] : undefined,
+      setPlayerState: settings.setPlayerState,
+      savedPipSize: sectionId ? settings.pipSizeBySection[sectionId] : undefined,
+      setPipSize: settings.setPipSize,
+      savedVolume: sectionId ? settings.volumeBySection[sectionId] : undefined,
+      setVolumeForSection: settings.setVolumeForSection,
+      savedPlaybackRate: sectionId
+        ? (settings.playbackRateBySection[sectionId] ?? settings.playbackRate)
+        : settings.playbackRate,
+      setPlaybackRateForSection: settings.setPlaybackRateForSection,
+      setPlaybackRateGlobal: settings.setPlaybackRate,
+      savedCaptionsEnabled: sectionId
+        ? (settings.captionsEnabledBySection[sectionId] ?? settings.captionsEnabled)
+        : settings.captionsEnabled,
+      setCaptionsEnabledForSection: settings.setCaptionsEnabledForSection,
+      setCaptionsEnabledGlobal: settings.setCaptionsEnabled,
+      savedIsMuted: sectionId ? settings.mutedBySection[sectionId] : undefined,
+      setMutedForSection: settings.setMutedForSection,
+    }),
+    [sectionId, settings],
+  );
+}
