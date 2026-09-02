@@ -107,9 +107,9 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await player.focus();
 
   await player.press('k');
-  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await player.press('k');
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
 
   await player.press('j');
   await expect
@@ -184,11 +184,11 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await player.press('i');
 
   await player.press('k');
-  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await player.press(',');
-  await expect(page.getByRole('button', { name: 'Play' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await player.press('k');
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
 
   await setStockMode(serviceWorker, tabId);
 });
