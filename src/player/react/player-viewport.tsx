@@ -141,8 +141,17 @@ export function PlayerViewport({
     [dispatch, state.audioId, state.mainId, state.mode],
   );
   const handlePromote = useCallback(
-    (id: string) => dispatchPlayerAction({ type: 'promote', id }),
-    [dispatchPlayerAction],
+    (id: string) => {
+      const wasPlaying = isPlaying;
+      dispatchPlayerAction({ type: 'promote', id });
+      if (wasPlaying) {
+        setIsPlaying(true);
+        requestAnimationFrame(() => {
+          for (const el of Object.values(videoMap.current)) void el.play().catch(() => setIsPlaying(false));
+        });
+      }
+    },
+    [dispatchPlayerAction, isPlaying],
   );
   const duration = properties.durationSeconds ?? lesson.durationSeconds ?? 0;
   const { savePosition } = usePlaybackSync({

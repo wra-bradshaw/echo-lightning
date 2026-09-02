@@ -346,12 +346,16 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
   await navigate('/sections/section-current/classrooms/lesson-one');
   await expect(page).toHaveURL(/\/sections\/section-current\/classrooms\/lesson-one/);
-  await expect(page.getByTestId('classroom-player').getByTestId('camera-grid')).toBeVisible();
-  await expect(page.getByTestId('camera-grid').locator('video')).toHaveCount(2);
+  await expect(page.getByTestId('classroom-player')).toHaveAttribute('data-mode', 'focus');
+  await expect(page.getByTestId('classroom-player').getByTestId('main-stream')).toBeVisible();
   const storedSettings = await readExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
   const storedValue = storedSettings[SETTINGS_STORAGE_KEY];
   expect(typeof storedValue).toBe('string');
-  expect(JSON.parse(String(storedValue)).state.selectedStreamIds['section-current']).toEqual(['camera-1', 'camera-2']);
+  const parsedStored = JSON.parse(String(storedValue));
+  expect(parsedStored.state.selectedStreamIds['section-current']).toEqual(['camera-1', 'camera-2']);
+  expect(parsedStored.state.playerStateBySection['section-current']).toMatchObject({
+    mode: 'focus',
+  });
 
   await setStockMode(serviceWorker, tabId);
 });
