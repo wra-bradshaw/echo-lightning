@@ -136,25 +136,14 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
       player.locator('video').evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).volume)),
     )
     .toEqual([0.95, 0.95]);
-  const volumeControl = page.getByTestId('player-volume-control');
   const volumeSlider = page.getByTestId('player-volume-slider');
-  const volumeSliderReveal = page.getByTestId('player-volume-slider-reveal');
   const volumeThumb = volumeSlider.locator('[data-slot="slider-thumb"] input');
-  await page.mouse.move(0, 0);
-  await expect(volumeSliderReveal).toHaveCSS('opacity', '0');
-  await volumeControl.hover();
-  await expect(volumeSliderReveal).toHaveCSS('opacity', '1');
   const volumeTrack = volumeSlider.locator('[data-slot="slider-track"]');
   const volumeTrackBox = await volumeTrack.boundingBox();
   if (!volumeTrackBox) throw new Error('Volume slider track is not measurable');
   await page.mouse.click(volumeTrackBox.x + volumeTrackBox.width - 1, volumeTrackBox.y + volumeTrackBox.height / 2);
   await expect(player.getByTestId('player-volume-value')).toHaveText('500%');
   await volumeThumb.focus();
-  await expect(volumeThumb).toBeFocused();
-  await page.mouse.move(0, 0);
-  await page.waitForTimeout(200);
-  await expect(volumeSliderReveal).toHaveCSS('opacity', '1');
-  await expect(volumeSliderReveal).toHaveCSS('opacity', '0');
   await expect(volumeThumb).toBeFocused();
   await expect(player.getByTestId('player-volume-value')).toHaveText('500%');
   await player.press('m');

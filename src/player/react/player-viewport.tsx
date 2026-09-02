@@ -703,7 +703,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                     CC
                   </Button>
                   <div
-                    className="group/volume pointer-events-auto flex shrink-0 items-center gap-2"
+                    className="pointer-events-auto flex shrink-0 items-center gap-2"
                     data-testid="player-volume-control"
                   >
                     <Button
@@ -716,7 +716,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                       {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
                     </Button>
                     <div
-                      className="grid w-32 grid-cols-[1fr] overflow-hidden opacity-0 transition-opacity delay-500 duration-200 group-hover/volume:opacity-100 group-hover/volume:delay-0"
+                      className="grid w-32 grid-cols-[1fr] overflow-hidden"
                       data-testid="player-volume-slider-reveal"
                     >
                       <div className="flex min-w-0 items-center gap-2">
