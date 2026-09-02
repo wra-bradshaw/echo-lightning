@@ -9,7 +9,7 @@ const SyllabusItemSchema = z
     name: z.string().optional(),
     type: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 const MediaSchema = z
   .object({
     id: IdSchema.optional(),
@@ -18,7 +18,7 @@ const MediaSchema = z
     thumbnailUri: z.string().optional(),
     isAudioOnly: z.boolean().optional(),
   })
-  .passthrough();
+  .loose();
 const LessonMetadataSchema = z
   .object({
     id: IdSchema.optional(),
@@ -27,19 +27,19 @@ const LessonMetadataSchema = z
     displayName: z.string().optional(),
     timing: z.object({ start: z.string().optional(), end: z.string().optional() }).optional(),
   })
-  .passthrough();
+  .loose();
 const LiveSyllabusItemSchema = z
   .object({
     type: z.string().optional(),
-    lesson: z.object({ lesson: LessonMetadataSchema, medias: z.array(MediaSchema).optional() }).passthrough(),
+    lesson: z.object({ lesson: LessonMetadataSchema, medias: z.array(MediaSchema).optional() }).loose(),
   })
-  .passthrough();
+  .loose();
 const SyllabusSchema = z.union([
   z.array(SyllabusItemSchema),
   z
     .object({ items: z.array(SyllabusItemSchema).optional(), lessons: z.array(SyllabusItemSchema).optional() })
-    .passthrough(),
-  z.object({ data: z.array(LiveSyllabusItemSchema) }).passthrough(),
+    .loose(),
+  z.object({ data: z.array(LiveSyllabusItemSchema) }).loose(),
 ]);
 
 export type SyllabusPayload = z.infer<typeof SyllabusSchema>;

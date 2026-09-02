@@ -7,7 +7,7 @@ const PlayableMediaSchema = z
     trackType: z.array(z.string()).optional(),
     uri: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 const PlayerDataSchema = z
   .object({
     mediaId: IdSchema.optional(),
@@ -20,11 +20,11 @@ const PlayerDataSchema = z
         mediaId: IdSchema.optional(),
         playableMedias: z.array(PlayableMediaSchema).optional(),
       })
-      .passthrough()
+      .loose()
       .optional(),
   })
-  .passthrough();
-const PlayerPropertiesSchema = z.union([PlayerDataSchema, z.object({ data: PlayerDataSchema }).passthrough()]);
+  .loose();
+const PlayerPropertiesSchema = z.union([PlayerDataSchema, z.object({ data: PlayerDataSchema }).loose()]);
 
 export type PlayerPropertiesPayload = z.infer<typeof PlayerPropertiesSchema>;
 export type PlayerData = z.infer<typeof PlayerDataSchema>;

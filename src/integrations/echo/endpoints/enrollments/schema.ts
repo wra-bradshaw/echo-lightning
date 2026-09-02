@@ -8,7 +8,7 @@ const TermSchema = z
     startDate: z.string().optional(),
     isActiveOrFuture: z.boolean().optional(),
   })
-  .passthrough();
+  .loose();
 const UserSectionSchema = z
   .object({
     sectionId: IdSchema.optional(),
@@ -19,14 +19,14 @@ const UserSectionSchema = z
     lessonCount: z.number().optional(),
     termId: IdSchema.optional(),
   })
-  .passthrough();
+  .loose();
 const LiveEnrollmentSchema = z
   .object({
     userSections: z.array(UserSectionSchema),
     termsById: z.record(z.string(), TermSchema),
   })
-  .passthrough();
-const EnrollmentsSchema = z.object({ data: z.array(LiveEnrollmentSchema) }).passthrough();
+  .loose();
+const EnrollmentsSchema = z.object({ data: z.array(LiveEnrollmentSchema) }).loose();
 
 export type EnrollmentsPayload = z.infer<typeof EnrollmentsSchema>;
 
