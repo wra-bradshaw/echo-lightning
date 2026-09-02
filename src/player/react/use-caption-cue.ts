@@ -6,7 +6,7 @@ export function useCaptionCue(media: HTMLMediaElement | null, enabled: boolean, 
 
   useLayoutEffect(() => {
     if (!media) return;
-    for (const track of Array.from(media.textTracks)) track.mode = 'hidden';
+    for (const track of Array.from(media.textTracks)) track.mode = enabled ? 'hidden' : 'disabled';
     return () => {
       for (const track of Array.from(media.textTracks)) track.mode = 'disabled';
     };

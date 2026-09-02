@@ -1,9 +1,8 @@
 import { useLayoutEffect } from 'react';
 
-export function useCaptionTracks(media: HTMLMediaElement | null, _enabled: boolean): void {
-  void _enabled;
+export function useCaptionTracks(media: HTMLMediaElement | null, enabled: boolean): void {
   useLayoutEffect(() => {
     if (!media) return;
-    for (const track of Array.from(media.textTracks)) track.mode = 'hidden';
-  }, [_enabled, media]);
+    for (const track of Array.from(media.textTracks)) track.mode = enabled ? 'hidden' : 'disabled';
+  }, [enabled, media]);
 }

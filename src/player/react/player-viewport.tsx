@@ -13,6 +13,7 @@ import {
 import { domMax, LazyMotion, MotionConfig, m, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEscapeKey } from './use-escape-key';
 import { usePipDrag } from './use-pip-drag';
 import { usePipResize } from './use-pip-resize';
 import { getPipHeight, getPipMaxWidth, PIP_MIN_HEIGHT, PIP_MIN_WIDTH } from '../core/pip-constants';
@@ -152,6 +153,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
   const syncing = useRef(false);
   const [aspectRatios, setAspectRatios] = useState<Record<string, number>>({});
   const [streamMenuOpen, setStreamMenuOpen] = useState(false);
+  useEscapeKey(streamMenuOpen, () => setStreamMenuOpen(false));
   const playerRef = useRef<HTMLDivElement>(null);
   const { ref: sizeRef, element: viewportElement, size: viewportSize } = useElementSize<HTMLDivElement>();
   const viewportRef = useCallback(
@@ -497,7 +499,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
           role="region"
           aria-label="Video player"
           tabIndex={0}
-          className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-white"
+          className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:outline-none"
           data-testid="classroom-player"
           data-mode={state.mode}
           onMouseMove={controls.onMouseMove}
@@ -629,6 +631,8 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                 <div className="pointer-events-auto min-w-0 flex-1">
                   <Slider
                     aria-label="Lecture timeline"
+                    aria-valuetext={`${formatDuration(currentTime)} of ${formatDuration(duration)}`}
+                    getAriaValueText={(_formatted, value) => `${formatDuration(value)} of ${formatDuration(duration)}`}
                     value={[Math.min(currentTime, duration || currentTime)]}
                     min={0}
                     max={duration || 1}
@@ -669,9 +673,11 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-white hover:bg-white/15 hover:text-white"
+                      className="text-white hover:bg-white/15 hover:text-white focus-visible:ring-white focus-visible:ring-offset-zinc-950"
                       aria-label={`Streams ${state.selectedIds.length}/${sources.length}`}
                       aria-expanded={streamMenuOpen}
+                      aria-haspopup="dialog"
+                      aria-controls="stream-manager"
                       onClick={() => setStreamMenuOpen((open) => !open)}
                     >
                       Streams {state.selectedIds.length}/{sources.length} <CaretDown className="size-4" />
@@ -694,10 +700,12 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                     size="sm"
                     className={
                       captionsEnabled
-                        ? 'bg-white text-black hover:bg-white/90 hover:text-black'
-                        : 'text-white hover:bg-white/15 hover:text-white'
+                        ? 'bg-white text-black hover:bg-white/90 hover:text-black focus-visible:ring-white focus-visible:ring-offset-zinc-950'
+                        : 'text-white hover:bg-white/15 hover:text-white focus-visible:ring-white focus-visible:ring-offset-zinc-950'
                     }
                     aria-label={captionsEnabled ? 'Captions on' : 'Captions off'}
+                    aria-pressed={captionsEnabled}
+                    aria-keyshortcuts="c"
                     onClick={() => setCaptionsEnabled(!captionsEnabled)}
                   >
                     CC
@@ -722,6 +730,11 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                       <div className="flex min-w-0 items-center gap-2">
                         <Slider
                           aria-label="Volume"
+                          aria-valuetext={`${Math.round(volume * 100)}%${volume > 1 ? ' boosted' : ''}`}
+                          getAriaValueText={(_formatted, value) => {
+                            const vol = sliderValueToPlayerVolume(value);
+                            return `${Math.round(vol * 100)}%${vol > 1 ? ' boosted' : ''}`;
+                          }}
                           data-testid="player-volume-slider"
                           value={[playerVolumeToSliderValue(volume)]}
                           min={0}
@@ -737,6 +750,8 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                         />
                         <span
                           data-testid="player-volume-value"
+                          aria-live="polite"
+                          aria-atomic="true"
                           className="w-10 shrink-0 text-right text-xs text-white/80 tabular-nums"
                         >
                           {Math.round(volume * 100)}%
@@ -760,6 +775,18 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                       <div className="flex min-w-0 items-center gap-2">
                         <Slider
                           aria-label="Playback speed"
+                          aria-valuetext={
+                            Number.isInteger(playbackRate)
+                              ? `${playbackRate}x`
+                              : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`
+                          }
+                          getAriaValueText={(_formatted, value) => {
+                            const speed = sliderToSpeed(value);
+                            const display = Number.isInteger(speed)
+                              ? `${speed}x`
+                              : `${speed.toFixed(3).replace(/\.?0+$/, '')}x`;
+                            return display;
+                          }}
                           data-testid="player-speed-slider"
                           value={[speedToSlider(playbackRate)]}
                           min={0}
@@ -772,6 +799,8 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                         />
                         <span
                           data-testid="player-speed-value"
+                          aria-live="polite"
+                          aria-atomic="true"
                           className="w-12 shrink-0 text-right text-xs text-white/80 tabular-nums"
                         >
                           {Number.isInteger(playbackRate)
@@ -809,21 +838,28 @@ function StreamManager({
   const selectedSet = new Set(selectedIds);
   return (
     <div
+      role="dialog"
+      id="stream-manager"
+      aria-labelledby="stream-manager-heading"
+      aria-modal="true"
       data-testid="stream-manager"
       className="pointer-events-auto absolute bottom-full left-0 z-[60] mb-2 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-white/15 bg-zinc-900/95 p-3 shadow-2xl backdrop-blur"
     >
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium">Streams</p>
+          <p id="stream-manager-heading" className="text-sm font-medium">
+            Streams
+          </p>
           <p className="text-xs text-white/60">Choose the cameras shown in the player.</p>
         </div>
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-white hover:bg-white/15 hover:text-white"
+          className="text-white hover:bg-white/15 hover:text-white focus-visible:ring-white"
+          aria-label="Close stream manager"
           onClick={onClose}
         >
-          <X className="size-4" />
+          <X className="size-4" aria-hidden="true" />
         </Button>
       </div>
       <div className="space-y-1">
@@ -1055,7 +1091,16 @@ function DraggablePip({
   return (
     <m.div
       layout={!isDragging}
-      className="absolute z-[70] overflow-hidden rounded-xl border-2 border-white/70 bg-black shadow-2xl focus-within:ring-2 focus-within:ring-white"
+      role="button"
+      tabIndex={0}
+      aria-label={`Move ${source.label} picture-in-picture, press Enter to promote to main`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onPromote(source.id);
+        }
+      }}
+      className="absolute z-[70] overflow-hidden rounded-xl border-2 border-white/70 bg-black shadow-2xl focus-within:ring-2 focus-within:ring-white focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
       style={style}
       data-testid="pip-stream"
       data-stream-id={source.id}
@@ -1068,16 +1113,36 @@ function DraggablePip({
       onLostPointerCapture={handlePointerCancel}
     >
       {children}
-      <div
+      <button
+        type="button"
         data-testid="pip-resize-handle"
-        className={cn('absolute z-10 flex h-6 w-6 touch-none p-1', handleConfig.className)}
+        className={cn(
+          'absolute z-10 flex h-6 w-6 touch-none items-center justify-center p-1 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none',
+          handleConfig.className,
+        )}
+        aria-label={`Resize ${source.label} picture-in-picture`}
+        role="slider"
+        aria-valuenow={Math.round(pipSize.width)}
+        aria-valuemin={148}
+        aria-valuemax={480}
+        aria-valuetext={`${Math.round(pipSize.width)} by ${Math.round(pipSize.height)}`}
         onPointerDown={resizeHandle.onPointerDown}
         onPointerMove={resizeHandle.onPointerMove}
         onPointerUp={resizeHandle.onPointerUp}
         onLostPointerCapture={resizeHandle.onLostPointerCapture}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            onResize({ width: pipSize.width + 10, height: pipSize.height + (10 * 9) / 16 });
+          }
+          if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+            event.preventDefault();
+            onResize({ width: pipSize.width - 10, height: pipSize.height - (10 * 9) / 16 });
+          }
+        }}
       >
-        <div className={cn('h-3 w-3 rounded-sm border-white/80 opacity-70', handleConfig.border)} />
-      </div>
+        <span className={cn('h-3 w-3 rounded-sm border-white/80 opacity-70', handleConfig.border)} aria-hidden="true" />
+      </button>
     </m.div>
   );
 }
@@ -1161,13 +1226,14 @@ function VideoStream({
           onMetadata(event.currentTarget);
         }}
       >
-        {captions.map((caption) => (
+        {captions.map((caption, index) => (
           <track
             key={caption.src}
             kind={caption.kind ?? 'captions'}
             src={caption.src}
             srcLang={caption.language}
             label={caption.label}
+            default={captionsEnabled && index === 0}
           />
         ))}
       </video>
@@ -1223,14 +1289,18 @@ function CaptionOverlay({
   return (
     <div
       data-testid="caption-display"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label="Captions"
       data-visible={controlsVisible}
       className={cn(
         'pointer-events-none absolute inset-x-0 z-[80] flex justify-center px-4 transition-all duration-300',
         controlsVisible ? 'bottom-28' : 'bottom-6',
       )}
-      aria-live="off"
     >
       <span
+        aria-hidden="true"
         className="max-w-[min(48rem,90%)] rounded bg-black/85 px-3 py-1.5 text-center text-sm leading-snug text-white shadow-lg backdrop-blur sm:text-[15px]"
         style={{ whiteSpace: 'pre-wrap' }}
       >
