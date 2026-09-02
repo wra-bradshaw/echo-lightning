@@ -13,8 +13,8 @@ import {
 import { domMax, LazyMotion, MotionConfig, m, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { useEscapeKey } from './use-escape-key';
 import { usePipDrag } from './use-pip-drag';
+import { useEscapeKey } from '../../shared/hooks/use-escape-key';
 import { usePipResize } from './use-pip-resize';
 import { getPipHeight, getPipMaxWidth, PIP_MIN_HEIGHT, PIP_MIN_WIDTH } from '../core/pip-constants';
 import type { EchoGateway, PlayerProperties, PlayerSource, SyllabusItem } from '../../domain';
@@ -478,14 +478,14 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
     <Link
       to="/section/$sectionId/home"
       params={{ sectionId }}
-      className="focus-visible:ring-ring inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-white/75 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2"
+      className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-white/75 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
     >
       <ArrowLeft className="size-4" /> Back to lectures
     </Link>
   ) : (
     <Link
       to="/courses"
-      className="focus-visible:ring-ring inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-white/75 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2"
+      className="inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-white/75 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
     >
       <ArrowLeft className="size-4" /> Back to courses
     </Link>
@@ -619,7 +619,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                  className="pointer-events-auto text-white hover:bg-white/15 hover:text-white focus-visible:border-white/40 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
                   aria-label={isPlaying ? 'Pause' : 'Play'}
                   onClick={togglePlayback}
                 >
@@ -657,13 +657,13 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                     <TabsList className="bg-white/10 text-white">
                       <TabsTrigger
                         value="grid"
-                        className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
+                        className="text-white/70 hover:bg-white/10 hover:text-white focus-visible:border-white/40 focus-visible:ring-white focus-visible:ring-offset-zinc-950 data-active:bg-white/20 data-active:text-white"
                       >
                         Grid
                       </TabsTrigger>
                       <TabsTrigger
                         value="focus"
-                        className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
+                        className="text-white/70 hover:bg-white/10 hover:text-white focus-visible:border-white/40 focus-visible:ring-white focus-visible:ring-offset-zinc-950 data-active:bg-white/20 data-active:text-white"
                       >
                         Focus
                       </TabsTrigger>
@@ -717,7 +717,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                      className="pointer-events-auto text-white hover:bg-white/15 hover:text-white focus-visible:border-white/40 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
                       aria-label={isMuted ? 'Unmute' : 'Mute'}
                       onClick={() => setIsMuted(!isMuted)}
                     >
@@ -766,7 +766,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                      className="pointer-events-auto text-white hover:bg-white/15 hover:text-white focus-visible:border-white/40 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
                       aria-label={`Playback speed ${playbackRate}x`}
                     >
                       <Gauge className="size-5" />
@@ -871,7 +871,7 @@ function StreamManager({
               <Button
                 variant="ghost"
                 size="sm"
-                className="min-w-0 flex-1 justify-start text-white hover:bg-transparent hover:text-white"
+                className="min-w-0 flex-1 justify-start text-white hover:bg-transparent hover:text-white focus-visible:ring-white focus-visible:ring-offset-zinc-900"
                 aria-pressed={selected}
                 onClick={() => onToggle(source.id)}
               >
@@ -881,7 +881,7 @@ function StreamManager({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-white hover:bg-white/15 hover:text-white"
+                className="text-white hover:bg-white/15 hover:text-white focus-visible:ring-white focus-visible:ring-offset-zinc-900"
                 aria-label={audible ? `${source.label} is audio source` : `Make ${source.label} audio source`}
                 disabled={!selected || audible}
                 onClick={() => onSetAudio(source.id)}
@@ -891,7 +891,7 @@ function StreamManager({
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-white hover:bg-white/15 hover:text-white"
+                className="text-white hover:bg-white/15 hover:text-white focus-visible:ring-white focus-visible:ring-offset-zinc-900"
                 aria-label={`Remove ${source.label}`}
                 disabled={!selected || selectedIds.length === 1}
                 onClick={() => onToggle(source.id)}
@@ -1252,7 +1252,7 @@ function VideoStream({
         <Button
           variant="ghost"
           size="icon-sm"
-          className="absolute top-12 right-1 z-10 text-white opacity-0 group-hover:opacity-100 hover:bg-black/70 hover:text-white focus:opacity-100"
+          className="absolute top-12 right-1 z-10 text-white opacity-0 group-hover:opacity-100 hover:bg-black/70 hover:text-white focus:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           aria-label={audioEnabled ? `${source.label} is audio source` : `Make ${source.label} audio source`}
           onClick={(event) => {
             event.stopPropagation();

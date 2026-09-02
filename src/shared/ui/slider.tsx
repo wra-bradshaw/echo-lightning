@@ -2,7 +2,27 @@ import { Slider as SliderPrimitive } from '@base-ui/react/slider';
 
 import { cn } from '@/shared/lib/cn';
 
-function Slider({ className, defaultValue, value, min = 0, max = 100, ...props }: SliderPrimitive.Root.Props) {
+type SliderProps = SliderPrimitive.Root.Props & {
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-valuetext'?: string;
+  getAriaLabel?: (index: number) => string;
+  getAriaValueText?: (formattedValue: string, value: number, index: number) => string;
+};
+
+function Slider({
+  className,
+  defaultValue,
+  value,
+  min = 0,
+  max = 100,
+  'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-valuetext': ariaValueText,
+  getAriaLabel,
+  getAriaValueText,
+  ...props
+}: SliderProps) {
   const _values = Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max];
 
   return (
@@ -30,7 +50,13 @@ function Slider({ className, defaultValue, value, min = 0, max = 100, ...props }
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
-            className="relative block size-3.5 shrink-0 rounded-full border border-white/20 bg-white shadow-sm transition-[color,box-shadow] select-none after:absolute after:-inset-3 hover:ring-4 hover:ring-white/20 focus-visible:ring-4 focus-visible:ring-white/30 focus-visible:outline-hidden active:ring-4 active:ring-white/20 disabled:pointer-events-none disabled:opacity-50"
+            index={index}
+            aria-label={getAriaLabel ? getAriaLabel(index) : ariaLabel}
+            aria-labelledby={ariaLabelledBy}
+            aria-valuetext={ariaValueText}
+            getAriaLabel={getAriaLabel}
+            getAriaValueText={getAriaValueText}
+            className="relative block size-3.5 shrink-0 rounded-full border border-white/20 bg-white shadow-sm transition-[color,box-shadow] select-none after:absolute after:-inset-3 focus-within:ring-4 focus-within:ring-white focus-within:ring-offset-2 focus-within:ring-offset-zinc-950 focus-within:outline-none hover:ring-4 hover:ring-white/20 focus-visible:ring-4 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 focus-visible:outline-none active:ring-4 active:ring-white/20 disabled:pointer-events-none disabled:opacity-50 has-[input:focus-visible]:ring-4 has-[input:focus-visible]:ring-white has-[input:focus-visible]:ring-offset-2 has-[input:focus-visible]:ring-offset-zinc-950 has-[input:focus-visible]:outline-none"
           />
         ))}
       </SliderPrimitive.Control>
