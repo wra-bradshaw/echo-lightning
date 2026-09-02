@@ -13,29 +13,13 @@ function relativeHref(url: string | URL, base: string): string {
 }
 
 function browserLocation(win: Window): HistoryLocation {
-  const href = `${win.location.pathname}${win.location.search}${win.location.hash}`;
-  const hashIndex = href.indexOf('#');
-  const searchIndex = href.indexOf('?');
-  const pathEnd =
-    hashIndex > 0
-      ? searchIndex > 0
-        ? Math.min(hashIndex, searchIndex)
-        : hashIndex
-      : searchIndex > 0
-        ? searchIndex
-        : href.length;
+  const { pathname, search, hash } = win.location;
   const rawState = win.history.state;
   const state =
     rawState && Number.isSafeInteger(rawState.__TSR_index)
       ? rawState
       : { ...(rawState && typeof rawState === 'object' ? rawState : {}), __TSR_index: 0 };
-  return {
-    href,
-    pathname: href.slice(0, pathEnd),
-    search: searchIndex > -1 ? href.slice(searchIndex, hashIndex > -1 ? hashIndex : undefined) : '',
-    hash: hashIndex > -1 ? href.slice(hashIndex) : '',
-    state,
-  };
+  return { href: `${pathname}${search}${hash}`, pathname, search, hash, state };
 }
 
 export function createLightningHistory(win: Window = window, onNavigate?: (url: string) => void): LightningHistory {

@@ -1,22 +1,8 @@
+import { z } from 'zod';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
-type PipSize = { width: number; height: number };
-
-type PlayerMode = 'grid' | 'focus';
-
-type PipPosition = {
-  corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  index: number;
-};
-
-type PlayerState = {
-  mode: PlayerMode;
-  selectedIds: string[];
-  mainId: string;
-  audioId: string;
-  pipPositions: Record<string, PipPosition>;
-};
+import type { PipSize, PlayerState } from '../../domain/player-types';
 
 type LightningSettings = {
   captionsEnabled: boolean;
@@ -62,113 +48,34 @@ export type SettingsStorageInput = SettingsStorage | BrowserStorageArea;
 
 export const SETTINGS_STORAGE_KEY = 'lightning.settings';
 
-function validPlaybackRate(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0.25 && value <= 10;
-}
-
-function validVolume(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 5;
-}
-
-function validVolumeBySection(value: unknown): value is Record<string, number> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([k, v]) => Boolean(k) && validVolume(v));
-}
-
-function validPlaybackRateBySection(value: unknown): value is Record<string, number> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([k, v]) => Boolean(k) && validPlaybackRate(v));
-}
-
-function validCaptionsEnabledBySection(value: unknown): value is Record<string, boolean> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([k, v]) => Boolean(k) && typeof v === 'boolean');
-}
-
-function validMutedBySection(value: unknown): value is Record<string, boolean> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([k, v]) => Boolean(k) && typeof v === 'boolean');
-}
-
-function validSelectedStreamIds(value: unknown): value is Record<string, string[]> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(
-    ([sectionId, ids]) =>
-      Boolean(sectionId) &&
-      Array.isArray(ids) &&
-      ids.every((id) => typeof id === 'string') &&
-      ids.every((id, index) => ids.indexOf(id) === index),
-  );
-}
-
-function validPipSize(value: unknown): value is PipSize {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const size = value as Partial<PipSize>;
-  return (
-    typeof size.width === 'number' &&
-    Number.isFinite(size.width) &&
-    typeof size.height === 'number' &&
-    Number.isFinite(size.height) &&
-    size.width >= 100 &&
-    size.width <= 800 &&
-    size.height >= 50 &&
-    size.height <= 500
-  );
-}
-
-function validPipPosition(value: unknown): value is PipPosition {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const pos = value as Partial<PipPosition>;
-  return (
-    (pos.corner === 'top-left' ||
-      pos.corner === 'top-right' ||
-      pos.corner === 'bottom-left' ||
-      pos.corner === 'bottom-right') &&
-    typeof pos.index === 'number' &&
-    Number.isInteger(pos.index) &&
-    pos.index >= 0 &&
-    pos.index < 20
-  );
-}
-
-function validPlayerState(value: unknown): value is PlayerState {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const state = value as Partial<PlayerState>;
-  if (state.mode !== 'grid' && state.mode !== 'focus') return false;
-  if (!Array.isArray(state.selectedIds) || !state.selectedIds.every((id) => typeof id === 'string')) return false;
-  if (typeof state.mainId !== 'string' || typeof state.audioId !== 'string') return false;
-  if (!state.pipPositions || typeof state.pipPositions !== 'object' || Array.isArray(state.pipPositions)) return false;
-  return Object.values(state.pipPositions).every(validPipPosition);
-}
-
-function validPlayerStateBySection(value: unknown): value is Record<string, PlayerState> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([k, v]) => Boolean(k) && validPlayerState(v));
-}
-
-function validPipSizeBySection(value: unknown): value is Record<string, PipSize> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  return Object.entries(value).every(([k, v]) => Boolean(k) && validPipSize(v));
-}
-
-function validSettings(value: unknown): value is LightningSettings {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const state = value as Partial<LightningSettings>;
-  const hasBase =
-    typeof state.captionsEnabled === 'boolean' &&
-    validPlaybackRate(state.playbackRate) &&
-    validSelectedStreamIds(state.selectedStreamIds);
-  if (!hasBase) return false;
-  if (state.volumeBySection !== undefined && !validVolumeBySection(state.volumeBySection)) return false;
-  if (state.playbackRateBySection !== undefined && !validPlaybackRateBySection(state.playbackRateBySection))
-    return false;
-  if (state.captionsEnabledBySection !== undefined && !validCaptionsEnabledBySection(state.captionsEnabledBySection))
-    return false;
-  if (state.mutedBySection !== undefined && !validMutedBySection(state.mutedBySection)) return false;
-  if (state.playerStateBySection !== undefined && !validPlayerStateBySection(state.playerStateBySection)) return false;
-  if (state.pipSizeBySection !== undefined && !validPipSizeBySection(state.pipSizeBySection)) return false;
-  return true;
-}
+const validRecord = <T>(schema: z.ZodType<T>) => z.record(z.string().min(1), schema);
+const playbackRateSchema = z.number().finite().min(0.25).max(10);
+const volumeSchema = z.number().finite().min(0).max(5);
+const pipSizeSchema = z.object({ width: z.number().finite().min(100).max(800), height: z.number().finite().min(50).max(500) });
+const pipPositionSchema = z.object({ corner: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']), index: z.number().int().min(0).max(19) });
+const playerStateSchema = z.object({
+  mode: z.enum(['grid', 'focus']),
+  selectedIds: z.array(z.string()),
+  mainId: z.string(),
+  audioId: z.string(),
+  pipPositions: validRecord(pipPositionSchema),
+});
+const settingsSchema = z.object({
+  captionsEnabled: z.boolean(),
+  playbackRate: playbackRateSchema,
+  volumeBySection: validRecord(volumeSchema).optional(),
+  playbackRateBySection: validRecord(playbackRateSchema).optional(),
+  captionsEnabledBySection: validRecord(z.boolean()).optional(),
+  mutedBySection: validRecord(z.boolean()).optional(),
+  selectedStreamIds: validRecord(z.array(z.string())),
+  playerStateBySection: validRecord(playerStateSchema).optional(),
+  pipSizeBySection: validRecord(pipSizeSchema).optional(),
+});
+function validPlaybackRate(value: unknown): value is number { return playbackRateSchema.safeParse(value).success; }
+function validVolume(value: unknown): value is number { return volumeSchema.safeParse(value).success; }
+function validPlayerState(value: unknown): value is PlayerState { return playerStateSchema.safeParse(value).success; }
+function validPipSize(value: unknown): value is PipSize { return pipSizeSchema.safeParse(value).success; }
+function validSettings(value: unknown): value is LightningSettings { return settingsSchema.safeParse(value).success; }
 
 function settingsOnly(value: unknown): LightningSettings | undefined {
   if (!validSettings(value)) return undefined;

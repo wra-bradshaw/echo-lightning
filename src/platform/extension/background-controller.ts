@@ -43,18 +43,20 @@ async function clearTab(deps: BackgroundControllerDeps, tabId: number, updateBad
   if (updateBadge) await setModeBadge(deps, tabId, 'stock');
 }
 
+async function checkEchoAuth(deps: BackgroundControllerDeps, tabId: number, url: string): Promise<boolean> {
+  if (!deps.isAuthUrl(url)) return false;
+  await clearTab(deps, tabId);
+  return true;
+}
+
 async function syncTab(
   deps: BackgroundControllerDeps,
   tabId: number,
   url: string,
   inject: boolean,
 ): Promise<ExtensionResponse> {
-  if (!deps.isEchoUrl(url)) {
-    await clearTab(deps, tabId);
-    return { ok: true, mode: 'stock' };
-  }
-  if (deps.isAuthUrl(url)) {
-    await clearTab(deps, tabId);
+  if (!deps.isEchoUrl(url) || (await checkEchoAuth(deps, tabId, url))) {
+    if (!deps.isAuthUrl(url)) await clearTab(deps, tabId);
     return { ok: true, mode: 'stock' };
   }
   const mode = await deps.modes.read(tabId);
@@ -92,10 +94,7 @@ export function createBackgroundController(deps: BackgroundControllerDeps) {
         await deps.tabs.update(tabId, { url: 'https://echo360.net.au/' });
         return 'stock';
       }
-      if (deps.isAuthUrl(url)) {
-        await clearTab(deps, tabId);
-        return 'stock';
-      }
+      if (await checkEchoAuth(deps, tabId, url)) return 'stock';
       const mode = await deps.modes.read(tabId);
       if (mode === 'replacement') {
         await clearTab(deps, tabId);

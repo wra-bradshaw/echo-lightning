@@ -1,14 +1,7 @@
-import { placePipStacks, type PipPosition } from './pip-placement';
+import { placePipStacks } from './pip-placement';
+import type { PipPosition, PlayerMode, PlayerState } from '../../domain/player-types';
 
-type PlayerMode = 'grid' | 'focus';
-
-export type PlayerState = {
-  mode: PlayerMode;
-  selectedIds: string[];
-  mainId: string;
-  audioId: string;
-  pipPositions: Record<string, PipPosition>;
-};
+export type { PlayerState } from '../../domain/player-types';
 
 export type PlayerAction =
   | { type: 'focus'; id: string }

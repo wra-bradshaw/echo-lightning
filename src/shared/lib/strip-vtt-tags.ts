@@ -13,8 +13,8 @@ export function stripVttTags(raw: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
     .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'");
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#39;|&#x27;/gi, "'");
   return text;
 }

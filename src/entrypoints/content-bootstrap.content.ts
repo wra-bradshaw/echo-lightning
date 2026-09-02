@@ -15,7 +15,8 @@ export default defineContentScript({
     try {
       await runtime.sendMessage({ type: 'bootstrap', url: location.href });
       if (isEchoAuthUrl(location.href)) return;
-    } catch {
+    } catch (error) {
+      console.warn('Unable to bootstrap Echo360 Lightning.', error);
       return;
     }
   },

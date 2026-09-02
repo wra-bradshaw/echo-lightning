@@ -38,7 +38,8 @@ export default defineUnlistedScript(() => {
       controller.attach(media);
       controller.load(command.source);
       status(command.id, 'ready');
-    } catch {
+    } catch (error) {
+      console.warn('Unable to initialize player.', error);
       status(command.id, 'error');
     }
   });

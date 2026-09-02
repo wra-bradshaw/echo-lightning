@@ -1,12 +1,8 @@
-export type PipCorner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+import type { PipCorner, PipPosition, PipSize } from '../../domain/player-types';
 
-export type PipPosition = {
-  corner: PipCorner;
-  index: number;
-};
+export type { PipCorner, PipPosition, PipSize } from '../../domain/player-types';
 
 export type ViewportSize = { width: number; height: number };
-export type PipSize = { width: number; height: number };
 export type Point = { x: number; y: number };
 
 const PIP_CORNERS: readonly PipCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];

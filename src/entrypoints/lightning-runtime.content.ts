@@ -7,6 +7,7 @@ import { createBrowserStorageAdapter } from '../features/settings';
 import { isEchoHost } from '../integrations/echo';
 import { createPageFetch } from '../integrations/echo/transport/page-fetch';
 import type { ExtensionResponse } from '../platform/extension/messages';
+import { createHostContainer } from '../platform/browser/host-container';
 
 type Runtime = { sendMessage: (message: unknown) => Promise<ExtensionResponse> };
 
@@ -17,17 +18,7 @@ export default defineContentScript({
   async main() {
     if (!isEchoHost(location.hostname) || document.getElementById('echo-lightning-host')) return;
     const runtimeApi = browser.runtime as unknown as Runtime;
-    const host = document.createElement('div');
-    host.id = 'echo-lightning-host';
-    host.dataset.echoLightning = 'true';
-    Object.assign(host.style, {
-      position: 'fixed',
-      inset: '0',
-      zIndex: '2147483647',
-      pointerEvents: 'auto',
-      backgroundColor: 'transparent',
-      overflow: 'auto',
-    });
+    const host = createHostContainer(document);
     const shadow = host.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
     style.textContent = styles;
@@ -36,8 +27,8 @@ export default defineContentScript({
     app.id = 'lightning-app';
     shadow.append(app);
     (document.documentElement || document.body).append(host);
-    await injectScript('/history-bridge.js').catch(() => undefined);
-    await injectScript('/api-bridge.js').catch(() => undefined);
+    await injectScript('/history-bridge.js').catch((error) => console.warn('Unable to install history bridge.', error));
+    await injectScript('/api-bridge.js').catch((error) => console.warn('Unable to install API bridge.', error));
     const lightning = createLightningRuntime({
       window,
       sendMessage: (message) => runtimeApi.sendMessage(message),
