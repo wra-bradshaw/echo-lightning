@@ -27,6 +27,8 @@
 
 :host,
 #lightning-app {
+  color-scheme: light dark;
+  --lightning-bg: var(--background);
   --background: 0 0% 98%;
   --foreground: 0 0% 9%;
   --card: 0 0% 100%;

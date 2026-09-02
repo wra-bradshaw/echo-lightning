@@ -7,6 +7,8 @@ type Theme = 'light' | 'dark';
 
 const SYSTEM_DARK_MODE_QUERY = '(prefers-color-scheme: dark)';
 
+let lightningMounted = false;
+
 function getSystemTheme(): Theme {
   return typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
@@ -29,12 +31,33 @@ function useSystemTheme(): Theme {
   return useSyncExternalStore(subscribeToSystemTheme, getSystemTheme, getServerTheme);
 }
 
+export function syncOuterTheme(isDark: boolean): void {
+  if (typeof document === 'undefined') return;
+  if (!lightningMounted) {
+    const host = document.getElementById('echo-lightning-host');
+    const app = document.getElementById('lightning-app');
+    if (!host && !app) return;
+  }
+  const root = document.documentElement;
+  root.classList.toggle('dark', isDark);
+  root.dataset.theme = isDark ? 'dark' : 'light';
+  root.style.colorScheme = isDark ? 'dark' : 'light';
+}
+
 function useThemeBinding(root?: HTMLElement): void {
   const theme = useSystemTheme();
   useLayoutEffect(() => {
+    lightningMounted = true;
+    return () => {
+      lightningMounted = false;
+    };
+  }, []);
+  useLayoutEffect(() => {
     const target = root ?? document.documentElement;
-    target.classList.toggle('dark', theme === 'dark');
+    const isDark = theme === 'dark';
+    target.classList.toggle('dark', isDark);
     target.dataset.theme = theme;
+    syncOuterTheme(isDark);
   }, [root, theme]);
 }
 
