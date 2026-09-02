@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { EchoGateway } from '../../domain';
 import { createPlaybackPositionQueue, type PlaybackPositionQueue } from '../core/playback-sync';
@@ -48,8 +48,12 @@ export function usePlaybackSync({
   const durationRef = useRef(duration);
   const positionRef = useRef<number | undefined>(undefined);
   const queueRef = useRef<PlaybackPositionQueue | undefined>(undefined);
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (seconds: number) => (mediaId ? gateway.savePlayerPosition(mediaId, seconds) : Promise.resolve()),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['player-properties'] });
+    },
     retry: false,
   });
   const mutationRef = useRef(mutation.mutateAsync);
