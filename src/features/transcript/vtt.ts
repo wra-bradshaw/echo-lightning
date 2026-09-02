@@ -1,3 +1,4 @@
+import { stripVttTags } from '../../shared/lib/strip-vtt-tags';
 import type { TranscriptCue } from './index';
 
 function timestamp(value: string): number {
@@ -17,6 +18,9 @@ export function parseWebVtt(source: string): TranscriptCue[] {
     if (timingIndex < 0) return [];
     const [start, end] = lines[timingIndex]!.split('-->').map((part) => part.trim().split(/\s+/)[0]!);
     if (!start || !end) return [];
-    return [{ start: timestamp(start), end: timestamp(end), text: lines.slice(timingIndex + 1).join('\n') }];
+    const raw = lines.slice(timingIndex + 1).join('\n');
+    const text = stripVttTags(raw);
+    if (!text.trim()) return [];
+    return [{ start: timestamp(start), end: timestamp(end), text }];
   });
 }
