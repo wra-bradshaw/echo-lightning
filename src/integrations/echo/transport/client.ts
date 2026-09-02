@@ -23,11 +23,13 @@ export class EchoTransport {
       credentials: 'include',
       fetch: async (input) => {
         const request = input as Request;
-        const body = request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.clone().text();
+        const hasBody = request.method !== 'GET' && request.method !== 'HEAD' && request.body !== null;
+        const rawBody = hasBody ? await request.clone().text() : undefined;
+        const body = rawBody === '' ? undefined : rawBody;
         return fetcher(new URL(request.url), {
           method: request.method,
           headers: request.headers,
-          body,
+          ...(body === undefined ? {} : { body }),
           credentials: request.credentials,
           signal: request.signal,
           ...(request.keepalive ? ({ keepalive: true } as RequestInit & { keepalive: boolean }) : {}),
