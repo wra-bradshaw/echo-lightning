@@ -39,9 +39,13 @@ describe('Lightning router', () => {
   it.each([
     ['/home', 'Your courses'],
     ['/course/course%201', 'Course course 1'],
+    ['/section/section%201/home', 'Course recordings'],
+    ['/section/section%201', 'Course recordings'],
     ['/sections/section%201', 'Course recordings'],
     ['/section/section%201/lesson/lesson%201', 'Lesson lesson 1'],
+    ['/sections/section%201/classrooms/lesson%201', 'Lesson lesson 1'],
     ['/classroom/lesson%201', 'Lesson lesson 1'],
+    ['/lesson/lesson%201', 'Lesson lesson 1'],
   ])('renders the supported Echo alias %s', async (path, heading) => {
     const { history, container } = renderRouter(path);
     await waitFor(() => expect(within(container).getByRole('heading', { name: heading })).toBeVisible());
@@ -49,7 +53,7 @@ describe('Lightning router', () => {
   });
 
   it('renders the matching course name for a section', async () => {
-    const { history, container } = renderRouter('/sections/section%201', [
+    const { history, container } = renderRouter('/section/section%201/home', [
       { id: 'course-1', sectionId: 'section 1', title: 'Design of Algorithms' },
     ]);
 
@@ -58,7 +62,7 @@ describe('Lightning router', () => {
   });
 
   it('uses a neutral heading when no course matches the section', async () => {
-    const { history, container } = renderRouter('/sections/missing-section', [
+    const { history, container } = renderRouter('/section/missing-section/home', [
       { id: 'course-1', sectionId: 'section 1', title: 'Design of Algorithms' },
     ]);
 
@@ -76,14 +80,14 @@ describe('Lightning router', () => {
   it('writes canonical Echo paths for router navigation', async () => {
     const { router, history, container } = renderRouter('/courses');
     await waitFor(() => expect(within(container).getByRole('heading', { name: 'Your courses' })).toBeVisible());
-    await router.navigate({ to: '/sections/$sectionId', params: { sectionId: 'section 2' } });
+    await router.navigate({ to: '/section/$sectionId/home', params: { sectionId: 'section 2' } });
     await waitFor(() => expect(within(container).getByRole('heading', { name: 'Course recordings' })).toBeVisible());
-    expect(window.location.pathname).toBe('/sections/section%202');
+    expect(window.location.pathname).toBe('/section/section%202/home');
     history.dispose();
   });
 
   it('returns home when the Echo360 Lightning branding is clicked', async () => {
-    const { history, container } = renderRouter('/sections/section%201');
+    const { history, container } = renderRouter('/section/section%201/home');
     await waitFor(() => expect(within(container).getByRole('heading', { name: 'Course recordings' })).toBeVisible());
 
     await userEvent.click(within(container).getByRole('link', { name: 'Echo360 Lightning' }));

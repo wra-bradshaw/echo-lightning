@@ -8,7 +8,7 @@ export function AppShell({ children, onUseOriginal }: { children: ReactNode; onU
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const currentUrl = canonicalEchoUrl(new URL(router.history.location.href, window.location.href));
-  const isClassroom = pathname.includes('/classrooms/') || pathname.startsWith('/classroom/');
+  const isClassroom = pathname.includes('/lesson/') || pathname.includes('/classroom');
   if (isClassroom) {
     return (
       <div className="bg-background text-foreground h-dvh min-h-0 overflow-hidden">

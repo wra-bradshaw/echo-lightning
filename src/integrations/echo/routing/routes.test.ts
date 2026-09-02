@@ -26,12 +26,14 @@ describe('parseEchoRoute', () => {
       sectionId: 'section 1',
     });
     expect(canonicalEchoUrl('https://echo360.net.au/lesson/lesson%201?tab=notes')).toBe(
-      'https://echo360.net.au/classrooms/lesson%201',
+      'https://echo360.net.au/lesson/lesson%201',
     );
   });
   it('provides TanStack input and output rewrites', () => {
     expect(rewriteEchoInput({ url: new URL('https://echo360.net.au/home') })?.pathname).toBe('/courses');
-    expect(rewriteEchoOutput({ url: new URL('https://echo360.net.au/sections/one') })?.pathname).toBe('/sections/one');
+    expect(rewriteEchoOutput({ url: new URL('https://echo360.net.au/sections/one') })?.pathname).toBe(
+      '/section/one/home',
+    );
   });
   it('drops query strings from snapshots', () =>
     expect(parseEchoRoute('https://echo360.net.au/unknown?token=secret')).toEqual({

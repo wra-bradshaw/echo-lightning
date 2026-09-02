@@ -47,7 +47,7 @@ function formatDate(value: string | undefined): string {
 }
 
 function sectionHref(sectionId: string) {
-  return { to: '/sections/$sectionId' as const, params: { sectionId } };
+  return { to: '/section/$sectionId/home' as const, params: { sectionId } };
 }
 
 export function CoursesPage() {
@@ -226,7 +226,7 @@ export function SectionPage() {
           return media ? (
             <Link
               key={lesson.id}
-              to="/sections/$sectionId/classrooms/$lessonId"
+              to="/section/$sectionId/lesson/$lessonId"
               params={{ sectionId, lessonId: lesson.id }}
               className="group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             >

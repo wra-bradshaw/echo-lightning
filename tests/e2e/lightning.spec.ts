@@ -44,7 +44,7 @@ test('returns home when the Lightning branding is clicked', async ({ page, servi
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
 
-  await page.evaluate(() => history.pushState(null, '', '/section/home-link-test'));
+  await page.evaluate(() => history.pushState(null, '', '/section/home-link-test/home'));
   await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
   await page.getByRole('link', { name: 'Echo360 Lightning' }).click();
 
@@ -73,7 +73,7 @@ test('follows Echo history changes without a reload', async ({ page, serviceWork
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toHaveCount(0);
-  await page.evaluate(() => history.pushState(null, '', '/section/history-test'));
+  await page.evaluate(() => history.pushState(null, '', '/section/history-test/home'));
   await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
 
   await setStockMode(serviceWorker, tabId);
@@ -202,8 +202,8 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your courses' })).toBeVisible();
-  await navigate('/sections/section-current');
-  await expect(page).toHaveURL(/\/sections\/section-current/);
+  await navigate('/section/section-current/home');
+  await expect(page).toHaveURL(/\/section\/section-current\/home/);
   await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
   await expect(page.getByText('section-current', { exact: true })).toHaveCount(0);
   const watchedProgress = page.getByRole('progressbar', { name: '21% watched' });
@@ -230,7 +230,7 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await expect(lectureCard).toBeVisible();
   await expect(page.getByText('Watch lecture', { exact: true })).toHaveCount(0);
   await lectureCard.click();
-  await expect(page).toHaveURL(/\/sections\/section-current\/classrooms\/lesson-one/);
+  await expect(page).toHaveURL(/\/section\/section-current\/lesson\/lesson-one/);
 
   const player = page.getByTestId('classroom-player');
   await expect(player).toBeVisible();
@@ -340,11 +340,11 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await expect.poll(() => positionRequests.length).toBeGreaterThan(0);
   expect(positionRequests.every(({ method, seconds }) => method === 'POST' && /^\d+$/.test(seconds))).toBe(true);
 
-  await navigate('/sections/section-current');
-  await expect(page).toHaveURL(/\/sections\/section-current$/);
+  await navigate('/section/section-current/home');
+  await expect(page).toHaveURL(/\/section\/section-current\/home$/);
   await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
-  await navigate('/sections/section-current/classrooms/lesson-one');
-  await expect(page).toHaveURL(/\/sections\/section-current\/classrooms\/lesson-one/);
+  await navigate('/section/section-current/lesson/lesson-one');
+  await expect(page).toHaveURL(/\/section\/section-current\/lesson\/lesson-one/);
   await expect(page.getByTestId('classroom-player')).toHaveAttribute('data-mode', 'focus');
   await expect(page.getByTestId('classroom-player').getByTestId('main-stream')).toBeVisible();
   const storedSettings = await readExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);

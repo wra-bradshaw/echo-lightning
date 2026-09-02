@@ -48,17 +48,17 @@ export const courseDetailsRoute = createRoute({
 });
 export const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/sections/$sectionId',
+  path: '/section/$sectionId/home',
   component: SectionPage,
 });
 export const classroomRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/classrooms/$lessonId',
+  path: '/lesson/$lessonId',
   component: ClassroomPage,
 });
 export const sectionClassroomRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/sections/$sectionId/classrooms/$lessonId',
+  path: '/section/$sectionId/lesson/$lessonId',
   component: SectionClassroomPage,
 });
 

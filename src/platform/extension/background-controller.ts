@@ -10,6 +10,7 @@ export type BackgroundControllerDeps = {
   isEchoUrl: (url: string) => boolean;
   isAuthUrl: (url: string) => boolean;
   isReplacementRoute: (url: string) => boolean;
+  canonicalUrl?: (url: string) => string;
   tabs: {
     reload: (tabId: number) => Promise<unknown>;
     update: (tabId: number, updateProperties: { url: string }) => Promise<unknown>;
@@ -98,6 +99,11 @@ export function createBackgroundController(deps: BackgroundControllerDeps) {
       const mode = await deps.modes.read(tabId);
       if (mode === 'replacement') {
         await clearTab(deps, tabId);
+        const canonical = deps.canonicalUrl ? deps.canonicalUrl(url) : url;
+        if (canonical !== url && deps.isEchoUrl(canonical)) {
+          await deps.tabs.update(tabId, { url: canonical });
+          return 'stock';
+        }
         await deps.tabs.reload(tabId);
         return 'stock';
       }
@@ -121,7 +127,9 @@ export function createBackgroundController(deps: BackgroundControllerDeps) {
       }
       await clearTab(deps, tabId);
       if (message.type === 'useOriginal' && message.url && deps.isEchoUrl(message.url)) {
-        await deps.tabs.update(tabId, { url: message.url });
+        const canonical = deps.canonicalUrl ? deps.canonicalUrl(message.url) : message.url;
+        if (deps.isEchoUrl(canonical)) await deps.tabs.update(tabId, { url: canonical });
+        return { ok: true, mode: 'stock', reloaded: true };
       }
       await deps.tabs.reload(tabId);
       return { ok: true, mode: 'stock', reloaded: true };

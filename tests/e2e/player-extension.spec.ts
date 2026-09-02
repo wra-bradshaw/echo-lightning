@@ -65,7 +65,7 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await setReplacementMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.evaluate(() => {
-    history.pushState(null, '', '/sections/section-hotkeys/classrooms/lesson-hotkeys');
+    history.pushState(null, '', '/section/section-hotkeys/lesson/lesson-hotkeys');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
 

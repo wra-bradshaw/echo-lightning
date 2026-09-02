@@ -1,6 +1,6 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
-import { isEchoAuthUrl, isReplacementRoute } from '../integrations/echo/routing/routes';
+import { isEchoAuthUrl, isReplacementRoute, stockEchoUrl } from '../integrations/echo/routing/routes';
 import { isEchoUrl } from '../integrations/echo/routing/url';
 import { createBackgroundController } from '../platform/extension/background-controller';
 import { isExtensionMessage } from '../platform/extension/messages';
@@ -27,6 +27,7 @@ export default defineBackground(() => {
     isEchoUrl: (url) => isEchoUrl(url),
     isAuthUrl: (url) => isEchoAuthUrl(url),
     isReplacementRoute: (url) => isReplacementRoute(url),
+    canonicalUrl: (url) => stockEchoUrl(url),
     tabs: {
       reload: (tabId) => browser.tabs.reload(tabId),
       update: (tabId, updateProperties) => browser.tabs.update(tabId, updateProperties),

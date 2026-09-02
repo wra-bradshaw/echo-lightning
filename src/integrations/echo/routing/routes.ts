@@ -75,11 +75,11 @@ export function parseEchoRoute(input: string | URL): EchoRoute {
 
 export function canonicalEchoPath(route: EchoRoute): string {
   if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
-  if (route.kind === 'section') return `/sections/${encodeURIComponent(route.sectionId)}`;
+  if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
   if (route.kind === 'classroom') {
     return route.sectionId
-      ? `/sections/${encodeURIComponent(route.sectionId)}/classrooms/${encodeURIComponent(route.lessonId)}`
-      : `/classrooms/${encodeURIComponent(route.lessonId)}`;
+      ? `/section/${encodeURIComponent(route.sectionId)}/lesson/${encodeURIComponent(route.lessonId)}`
+      : `/lesson/${encodeURIComponent(route.lessonId)}`;
   }
   return new URL(route.url, 'https://echo360.net.au').pathname;
 }
@@ -89,6 +89,23 @@ export function canonicalEchoUrl(input: string | URL): string {
   if (route.kind === 'unsupported' || route.kind === 'auth') return route.url;
   const url = new URL(route.url);
   url.pathname = canonicalEchoPath(route);
+  url.search = '';
+  url.hash = '';
+  return url.toString();
+}
+
+export function stockEchoPath(route: EchoRoute): string {
+  if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
+  if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
+  if (route.kind === 'classroom') return `/lesson/${encodeURIComponent(route.lessonId)}`;
+  return new URL(route.url, 'https://echo360.net.au').pathname;
+}
+
+export function stockEchoUrl(input: string | URL): string {
+  const route = parseEchoRoute(input);
+  if (route.kind === 'unsupported' || route.kind === 'auth') return route.url;
+  const url = new URL(route.url);
+  url.pathname = stockEchoPath(route);
   url.search = '';
   url.hash = '';
   return url.toString();

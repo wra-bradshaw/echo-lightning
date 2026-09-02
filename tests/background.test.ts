@@ -101,7 +101,7 @@ describe('background replacement controller', () => {
     await value.toolbarClick({ id: 13, url: 'https://echo360.net.au/courses' });
     await value.message({ type: 'useOriginal', url: 'https://echo360.net.au/courses' }, 13);
     expect(calls.update.at(-1)).toEqual({ tabId: 13, url: 'https://echo360.net.au/courses' });
-    expect(calls.reload).toBe(2);
+    expect(calls.reload).toBe(1);
     expect(events.slice(-2)).toEqual(['mode:stock', 'policy:remove']);
   });
 

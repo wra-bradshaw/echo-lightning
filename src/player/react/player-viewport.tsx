@@ -478,7 +478,7 @@ export function PlayerViewport({
 
   const backLink = sectionId ? (
     <Link
-      to="/sections/$sectionId"
+      to="/section/$sectionId/home"
       params={{ sectionId }}
       className="focus-visible:ring-ring inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm text-white/75 outline-none hover:bg-white/10 hover:text-white focus-visible:ring-2"
     >

@@ -10,10 +10,10 @@ describe('Lightning history adapter', () => {
     history.push('/courses');
     history.flush();
     expect(onNavigate).toHaveBeenCalledTimes(1);
-    window.history.replaceState(null, '', '/sections/one');
+    window.history.replaceState(null, '', '/section/one');
     window.document.dispatchEvent(new Event(NAVIGATION_EVENT));
     expect(onNavigate).toHaveBeenCalledTimes(2);
-    window.history.pushState(null, '', '/classrooms/two');
+    window.history.pushState(null, '', '/lesson/two');
     window.dispatchEvent(new PopStateEvent('popstate'));
     expect(onNavigate).toHaveBeenCalledTimes(3);
     history.dispose();
