@@ -1,6 +1,6 @@
 import { AuthenticationError } from './errors';
 
-export const ECHO_LOGIN_URL = 'https://login.echo360.net.au/login';
+const ECHO_LOGIN_URL = 'https://login.echo360.net.au/login';
 
 export type AuthenticationHandler = {
   onExpired(): Promise<void> | void;

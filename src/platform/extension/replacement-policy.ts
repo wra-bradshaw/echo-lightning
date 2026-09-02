@@ -1,4 +1,4 @@
-export const verifiedUiBundlePatterns = [
+const verifiedUiBundlePatterns = [
   '/static/js/main.',
   '/static/js/header.',
   '/static/js/courses.',
@@ -7,7 +7,7 @@ export const verifiedUiBundlePatterns = [
   '/static/js/echoplayer.',
 ] as const;
 
-export type SessionRule = {
+type SessionRule = {
   id: number;
   priority: number;
   action: { type: 'block' };

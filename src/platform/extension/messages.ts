@@ -1,7 +1,5 @@
 import type { TabMode } from './mode-store';
 
-export type DebugLaunchMode = 'stock' | 'overlay' | 'replacement';
-
 export type ExtensionMessage =
   | { type: 'getMode' }
   | { type: 'bootstrap'; url: string }

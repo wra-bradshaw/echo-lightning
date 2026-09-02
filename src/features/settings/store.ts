@@ -1,16 +1,16 @@
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware';
 
-export type PipSize = { width: number; height: number };
+type PipSize = { width: number; height: number };
 
-export type PlayerMode = 'grid' | 'focus';
+type PlayerMode = 'grid' | 'focus';
 
-export type PipPosition = {
+type PipPosition = {
   corner: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
   index: number;
 };
 
-export type PlayerState = {
+type PlayerState = {
   mode: PlayerMode;
   selectedIds: string[];
   mainId: string;
@@ -18,7 +18,7 @@ export type PlayerState = {
   pipPositions: Record<string, PipPosition>;
 };
 
-export type LightningSettings = {
+type LightningSettings = {
   captionsEnabled: boolean;
   playbackRate: number;
   volumeBySection: Record<string, number>;

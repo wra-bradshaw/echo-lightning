@@ -45,5 +45,3 @@ export function calculateGridLayout({ width, height, aspectRatios, gap = 12 }: G
 
   return best ?? { rows: 0, columns: 0, tileWidth: 0, tileHeight: 0, score: 0 };
 }
-
-export { FALLBACK_ASPECT_RATIO };

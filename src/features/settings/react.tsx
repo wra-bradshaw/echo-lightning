@@ -4,7 +4,7 @@ import { createLightningSettingsStore } from './store';
 
 const SettingsContext = createContext<LightningSettingsStore | undefined>(undefined);
 
-export function useSettingsHydration(store: LightningSettingsStore): void {
+function useSettingsHydration(store: LightningSettingsStore): void {
   useLayoutEffect(() => {
     void store.persist.rehydrate();
   }, [store]);
@@ -24,10 +24,4 @@ export function useLightningSettings<T>(selector: (state: LightningSettingsState
     () => selector(store.getState()),
     () => selector(store.getState()),
   );
-}
-
-export function useLightningSettingsStore(): LightningSettingsStore {
-  const store = useContext(SettingsContext);
-  if (!store) throw new Error('useLightningSettingsStore must be used inside SettingsProvider.');
-  return store;
 }

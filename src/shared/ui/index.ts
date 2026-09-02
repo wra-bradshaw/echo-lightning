@@ -3,7 +3,5 @@ export * from './card';
 export * from './badge';
 export * from './input';
 export * from './progress';
-export * from './separator';
-export * from './skeleton';
 export * from './slider';
 export * from './tabs';

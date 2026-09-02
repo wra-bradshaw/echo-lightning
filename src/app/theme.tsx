@@ -3,7 +3,7 @@ import { createLightningSettingsStore } from '../features/settings';
 import { SettingsProvider } from '../features/settings/react';
 import type { LightningSettingsStore } from '../features/settings/store';
 
-export type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark';
 
 const SYSTEM_DARK_MODE_QUERY = '(prefers-color-scheme: dark)';
 
@@ -25,11 +25,11 @@ function subscribeToSystemTheme(onChange: () => void): () => void {
 
 const getServerTheme = (): Theme => 'light';
 
-export function useSystemTheme(): Theme {
+function useSystemTheme(): Theme {
   return useSyncExternalStore(subscribeToSystemTheme, getSystemTheme, getServerTheme);
 }
 
-export function useThemeBinding(root?: HTMLElement): void {
+function useThemeBinding(root?: HTMLElement): void {
   const theme = useSystemTheme();
   useLayoutEffect(() => {
     const target = root ?? document.documentElement;
@@ -38,7 +38,7 @@ export function useThemeBinding(root?: HTMLElement): void {
   }, [root, theme]);
 }
 
-export function ThemeBinding({ root }: { root?: HTMLElement }) {
+function ThemeBinding({ root }: { root?: HTMLElement }) {
   useThemeBinding(root);
   return null;
 }

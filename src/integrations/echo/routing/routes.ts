@@ -73,7 +73,7 @@ export function parseEchoRoute(input: string | URL): EchoRoute {
   return { kind: 'unsupported', url: normalized };
 }
 
-export function canonicalEchoPath(route: EchoRoute): string {
+function canonicalEchoPath(route: EchoRoute): string {
   if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
   if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
   if (route.kind === 'classroom') {
@@ -92,7 +92,7 @@ export function canonicalEchoUrl(input: string | URL): string {
   return url.toString();
 }
 
-export function stockEchoPath(route: EchoRoute): string {
+function stockEchoPath(route: EchoRoute): string {
   if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
   if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
   if (route.kind === 'classroom') return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;

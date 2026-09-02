@@ -1,6 +1,6 @@
 import { placePipStacks, type PipPosition } from './pip-placement';
 
-export type PlayerMode = 'grid' | 'focus';
+type PlayerMode = 'grid' | 'focus';
 
 export type PlayerState = {
   mode: PlayerMode;

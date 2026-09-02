@@ -9,7 +9,7 @@ export type ViewportSize = { width: number; height: number };
 export type PipSize = { width: number; height: number };
 export type Point = { x: number; y: number };
 
-export const PIP_CORNERS: readonly PipCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+const PIP_CORNERS: readonly PipCorner[] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 
 export function clampPipPosition(point: Point, viewport: ViewportSize, pip: PipSize, margin: number): Point {
   const maxX = Math.max(margin, viewport.width - pip.width - margin);

@@ -12,7 +12,7 @@ import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo';
 import { AppShell } from './app-shell';
 import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionPage } from './pages';
 
-export type LightningRouterContext = {
+type LightningRouterContext = {
   gateway: EchoGateway;
   queryClient: QueryClient;
   onUseOriginal: (url?: string) => void;
@@ -57,12 +57,7 @@ export const classroomRoute = createRoute({
   component: ClassroomPage,
 });
 
-export const lightningRouteTree = rootRoute.addChildren([
-  coursesRoute,
-  courseDetailsRoute,
-  sectionRoute,
-  classroomRoute,
-]);
+const lightningRouteTree = rootRoute.addChildren([coursesRoute, courseDetailsRoute, sectionRoute, classroomRoute]);
 
 export function createLightningRouter(options: {
   history: RouterHistory;

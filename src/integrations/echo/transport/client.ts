@@ -85,4 +85,4 @@ export class EchoTransport {
   }
 }
 
-export { AuthenticationError, EchoApiError, HttpError, InvalidResponseError, NetworkError } from './errors';
+export { AuthenticationError, InvalidResponseError } from './errors';

@@ -11,18 +11,6 @@ export type CourseSummary = {
   lessonCount?: number;
 };
 
-export type SectionSummary = {
-  id: string;
-  title: string;
-  courseId?: string;
-};
-
-export type ClassroomSummary = {
-  lessonId: string;
-  title: string;
-  sectionId?: string;
-};
-
 export type SyllabusItem = {
   id: string;
   title: string;
@@ -34,7 +22,7 @@ export type SyllabusItem = {
   media: readonly MediaSummary[];
 };
 
-export type MediaSummary = {
+type MediaSummary = {
   id: string;
   title?: string;
   available?: boolean;
@@ -49,7 +37,7 @@ export type PlayerSource = {
   type?: string;
 };
 
-export type CaptionTrack = {
+type CaptionTrack = {
   src: string;
   language?: string;
   label?: string;

@@ -1,5 +1,4 @@
-export const ECHO_HOST = 'echo360.net.au';
-export const ECHO_ORIGIN = `https://${ECHO_HOST}`;
+const ECHO_HOST = 'echo360.net.au';
 
 export function isEchoHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, '');

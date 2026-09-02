@@ -9,5 +9,5 @@
   ],
   "project": ["src/**/*.{ts,tsx,css}", "tools/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
   "ignoreBinaries": ["rbw"],
-  "exclude": ["files", "exports", "types", "dependencies", "devDependencies", "unlisted"]
+  "exclude": ["files"]
 }

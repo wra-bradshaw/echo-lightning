@@ -2,9 +2,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { EchoGateway } from '../../domain';
 import { createPlaybackPositionQueue, type PlaybackPositionQueue } from '../core/playback-sync';
-import { useDocumentEvent } from '../../shared/hooks/use-document-event';
-import { useInterval } from '../../shared/hooks/use-interval';
-import { useWindowEvent } from '../../shared/hooks/use-window-event';
 
 export type PlaybackSyncOptions = {
   gateway: EchoGateway;
@@ -119,34 +116,37 @@ export function usePlaybackSync({
 
   const documentTarget = windowTarget?.document ?? (typeof document !== 'undefined' ? document : undefined);
 
-  useDocumentEvent(
-    'visibilitychange',
-    () => {
-      if (documentTarget?.visibilityState === 'hidden') saveCurrentPositionBeacon();
-    },
-    { enabled: enabled && Boolean(mediaId), documentTarget },
-  );
+  useLayoutEffect(() => {
+    if (!enabled || !mediaId) return;
+    const targetWindow = windowTarget ?? (typeof window === 'undefined' ? undefined : window);
+    const targetDocument = documentTarget;
+    if (!targetWindow || !targetDocument) return;
+    const handleVisibilityChange = () => {
+      if (targetDocument.visibilityState === 'hidden') saveCurrentPositionBeacon();
+    };
+    const handlePageHide = () => saveCurrentPositionBeacon();
+    const handleBeforeUnload = () => saveCurrentPositionBeacon();
+    targetDocument.addEventListener('visibilitychange', handleVisibilityChange);
+    targetWindow.addEventListener('pagehide', handlePageHide, true);
+    targetWindow.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      targetDocument.removeEventListener('visibilitychange', handleVisibilityChange);
+      targetWindow.removeEventListener('pagehide', handlePageHide, true);
+      targetWindow.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [documentTarget, enabled, mediaId, saveCurrentPositionBeacon, windowTarget]);
 
-  useWindowEvent('pagehide', () => saveCurrentPositionBeacon(), {
-    enabled: enabled && Boolean(mediaId),
-    windowTarget,
-    capture: true,
-  });
-
-  useWindowEvent('beforeunload', () => saveCurrentPositionBeacon(), {
-    enabled: enabled && Boolean(mediaId),
-    windowTarget,
-  });
-
-  useInterval(
-    () => {
+  useLayoutEffect(() => {
+    if (!enabled || !mediaId || !leader) return;
+    const targetWindow = windowTarget ?? (typeof window === 'undefined' ? undefined : window);
+    if (!targetWindow) return;
+    const id = targetWindow.setInterval(() => {
       const currentLeader = leaderRef.current;
-      if (!currentLeader) return;
-      if (currentLeader.paused) return;
+      if (!currentLeader || currentLeader.paused) return;
       saveCurrentPosition();
-    },
-    enabled && mediaId && leader ? periodicIntervalMs : null,
-  );
+    }, periodicIntervalMs);
+    return () => targetWindow.clearInterval(id);
+  }, [enabled, leader, mediaId, periodicIntervalMs, saveCurrentPosition, windowTarget]);
 
   return { savePosition: saveCurrentPosition };
 }
