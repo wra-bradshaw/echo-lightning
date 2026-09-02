@@ -690,17 +690,14 @@ export function PlayerViewport({
                       <Slider
                         aria-label="Volume"
                         data-testid="player-volume-slider"
-                        value={[
-                          Math.min(100, (playerVolumeToSliderValue(volume) / playerVolumeToSliderValue(1)) * 100),
-                        ]}
+                        value={[playerVolumeToSliderValue(volume)]}
                         min={0}
                         max={100}
                         step={PLAYER_VOLUME_SLIDER_STEP}
                         onValueChange={(value) => {
                           const next = Array.isArray(value) ? Number(value[0]) : Number(value);
                           if (Number.isFinite(next)) {
-                            const scaled = (next / 100) * playerVolumeToSliderValue(1);
-                            setAllVolume(sliderValueToPlayerVolume(scaled));
+                            setAllVolume(sliderValueToPlayerVolume(next));
                             setIsMuted(false);
                           }
                         }}
@@ -731,16 +728,13 @@ export function PlayerViewport({
                       <Slider
                         aria-label="Playback speed"
                         data-testid="player-speed-slider"
-                        value={[Math.min(100, (speedToSlider(playbackRate) / speedToSlider(1)) * 100)]}
+                        value={[speedToSlider(playbackRate)]}
                         min={0}
                         max={100}
                         step={1}
                         onValueChange={(value) => {
                           const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                          if (Number.isFinite(next)) {
-                            const scaled = (next / 100) * speedToSlider(1);
-                            setAllPlaybackRate(sliderToSpeed(scaled));
-                          }
+                          if (Number.isFinite(next)) setAllPlaybackRate(sliderToSpeed(next));
                         }}
                       />
                       <span
