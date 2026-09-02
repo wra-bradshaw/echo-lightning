@@ -55,7 +55,7 @@ import { useVideoSource } from './use-video-source';
 import { Button, Slider, Tabs, TabsList, TabsTrigger } from '../../shared/ui';
 import { cn } from '../../shared/lib/cn';
 
-export type PersistedPlayerSettings = {
+type PersistedPlayerSettings = {
   savedSelectedIds?: readonly string[];
   onSelectedIdsChange?: (ids: readonly string[]) => void;
   savedPlayerState?: import('../core/player-state').PlayerState;

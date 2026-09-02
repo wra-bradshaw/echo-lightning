@@ -1,8 +1,8 @@
 export const PIP_MIN_WIDTH = 148;
 export const PIP_MIN_HEIGHT = 83;
-export const PIP_MAX_WIDTH = 480;
-export const PIP_VIEWPORT_MARGIN = 32;
-export const PIP_ASPECT_RATIO = 16 / 9;
+const PIP_MAX_WIDTH = 480;
+const PIP_VIEWPORT_MARGIN = 32;
+const PIP_ASPECT_RATIO = 16 / 9;
 
 export function getPipMaxWidth(viewport: { width: number; height: number }): number {
   const maxWidthByViewport = Math.max(PIP_MIN_WIDTH, viewport.width - PIP_VIEWPORT_MARGIN);

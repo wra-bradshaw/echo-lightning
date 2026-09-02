@@ -43,7 +43,8 @@ export class EchoTransport {
         ],
         afterResponse: [
           async (_request, _options, response) => {
-            const redirectedToLogin = response.redirected && response.url && new URL(response.url).hostname === 'login.echo360.net.au';
+            const redirectedToLogin =
+              response.redirected && response.url && new URL(response.url).hostname === 'login.echo360.net.au';
             if (response.status === 401 || response.status === 403 || redirectedToLogin) {
               try {
                 await this.onAuthenticationExpired?.();

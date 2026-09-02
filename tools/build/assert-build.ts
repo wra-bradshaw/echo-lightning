@@ -2,7 +2,8 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const runtimePath = 'content-scripts/lightning-runtime.js';
-const forbiddenBootstrapText = [/react/i, /tanstack/i, /hls(?:\.js)?/i, /lucide/i, /styles\.css/i, /app\/styles/i];
+const MAX_BOOTSTRAP_BYTES = 15 * 1024;
+const FORBIDDEN_BOOTSTRAP_DEPENDENCIES = /(?:react(?:-dom)?|tanstack|hls(?:\.js)?|lucide|(?:app\/)?styles\.css)/i;
 
 export async function assertBuildArtifacts(outputRoot: string): Promise<void> {
   const manifest = JSON.parse(await readFile(path.join(outputRoot, 'manifest.json'), 'utf8')) as {
@@ -20,10 +21,10 @@ export async function assertBuildArtifacts(outputRoot: string): Promise<void> {
   const bootstrapFile = path.join(outputRoot, bootstrap);
   const runtimeFile = path.join(outputRoot, runtimePath);
   const bootstrapStats = await stat(bootstrapFile);
-  if (bootstrapStats.size >= 15 * 1024)
+  if (bootstrapStats.size >= MAX_BOOTSTRAP_BYTES)
     throw new Error(`The manifest bootstrap is ${bootstrapStats.size} bytes; it must stay below 15 KB.`);
   const bootstrapText = await readFile(bootstrapFile, 'utf8');
-  if (forbiddenBootstrapText.some((pattern) => pattern.test(bootstrapText))) {
+  if (FORBIDDEN_BOOTSTRAP_DEPENDENCIES.test(bootstrapText)) {
     throw new Error('The manifest bootstrap contains application-only dependencies.');
   }
   await stat(runtimeFile);

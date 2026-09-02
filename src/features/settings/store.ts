@@ -51,8 +51,14 @@ export const SETTINGS_STORAGE_KEY = 'lightning.settings';
 const validRecord = <T>(schema: z.ZodType<T>) => z.record(z.string().min(1), schema);
 const playbackRateSchema = z.number().finite().min(0.25).max(10);
 const volumeSchema = z.number().finite().min(0).max(5);
-const pipSizeSchema = z.object({ width: z.number().finite().min(100).max(800), height: z.number().finite().min(50).max(500) });
-const pipPositionSchema = z.object({ corner: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']), index: z.number().int().min(0).max(19) });
+const pipSizeSchema = z.object({
+  width: z.number().finite().min(100).max(800),
+  height: z.number().finite().min(50).max(500),
+});
+const pipPositionSchema = z.object({
+  corner: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
+  index: z.number().int().min(0).max(19),
+});
 const playerStateSchema = z.object({
   mode: z.enum(['grid', 'focus']),
   selectedIds: z.array(z.string()),
@@ -71,11 +77,21 @@ const settingsSchema = z.object({
   playerStateBySection: validRecord(playerStateSchema).optional(),
   pipSizeBySection: validRecord(pipSizeSchema).optional(),
 });
-function validPlaybackRate(value: unknown): value is number { return playbackRateSchema.safeParse(value).success; }
-function validVolume(value: unknown): value is number { return volumeSchema.safeParse(value).success; }
-function validPlayerState(value: unknown): value is PlayerState { return playerStateSchema.safeParse(value).success; }
-function validPipSize(value: unknown): value is PipSize { return pipSizeSchema.safeParse(value).success; }
-function validSettings(value: unknown): value is LightningSettings { return settingsSchema.safeParse(value).success; }
+function validPlaybackRate(value: unknown): value is number {
+  return playbackRateSchema.safeParse(value).success;
+}
+function validVolume(value: unknown): value is number {
+  return volumeSchema.safeParse(value).success;
+}
+function validPlayerState(value: unknown): value is PlayerState {
+  return playerStateSchema.safeParse(value).success;
+}
+function validPipSize(value: unknown): value is PipSize {
+  return pipSizeSchema.safeParse(value).success;
+}
+function validSettings(value: unknown): value is LightningSettings {
+  return settingsSchema.safeParse(value).success;
+}
 
 function settingsOnly(value: unknown): LightningSettings | undefined {
   if (!validSettings(value)) return undefined;

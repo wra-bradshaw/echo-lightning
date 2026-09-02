@@ -2,7 +2,7 @@ import { useCallback, useLayoutEffect, useRef, useState, type PointerEventHandle
 
 type PointerPosition = { x: number; y: number };
 
-export type PointerDragUpdate = {
+type PointerDragUpdate = {
   delta: PointerPosition;
   moved: boolean;
 };

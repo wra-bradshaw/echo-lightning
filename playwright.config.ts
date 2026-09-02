@@ -21,5 +21,12 @@ export default defineConfig({
   projects: [
     { name: 'extension', testMatch: /(?:extension|lightning)\.spec\.ts/ },
     { name: 'discovery', testMatch: /discovery\.spec\.ts/ },
+    {
+      name: 'debug',
+      testMatch: /debug\.seed\.spec\.ts/,
+      timeout: 0,
+      expect: { timeout: 30_000 },
+      use: { trace: process.env.ECHO360_DEBUG_TRACE === '1' ? 'on' : 'off' },
+    },
   ],
 });

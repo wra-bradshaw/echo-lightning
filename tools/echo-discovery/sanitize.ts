@@ -30,7 +30,7 @@ const STATIC_SEGMENT = new Set([
 
 export function structuralShape(value: unknown): unknown {
   if (value === null) return 'null';
-  if (Array.isArray(value)) return value.length ? [structuralShape(value[0])] : [];
+  if (Array.isArray(value)) return value.slice(0, 3).map(structuralShape);
   if (typeof value === 'string') return 'string';
   if (typeof value === 'number') return 'number';
   if (typeof value === 'boolean') return 'boolean';

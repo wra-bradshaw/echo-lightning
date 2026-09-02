@@ -74,7 +74,7 @@ export function parseEchoRoute(input: string | URL): EchoRoute {
 }
 
 export type EchoPathMode = 'canonical' | 'stock';
-export type EchoRewriteMode = 'input' | 'output';
+type EchoRewriteMode = 'input' | 'output';
 
 export function getEchoPath(route: EchoRoute, mode: EchoPathMode): string {
   switch (mode) {
@@ -112,7 +112,7 @@ function parseRewriteRoute(url: URL): EchoRoute {
   );
 }
 
-export function rewriteEchoUrl({ url }: { url: URL }, mode: EchoRewriteMode): URL | undefined {
+function rewriteEchoUrl({ url }: { url: URL }, mode: EchoRewriteMode): URL | undefined {
   const route = parseRewriteRoute(url);
   if (mode === 'input' && (route.kind === 'unsupported' || route.kind === 'auth')) return undefined;
   const rewritten = new URL(url.href);

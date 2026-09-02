@@ -10,6 +10,13 @@ import tseslint from 'typescript-eslint';
 const reactFiles = ['src/**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}'];
 const customHookFiles = ['src/**/use*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}'];
 
+function createBoundaryPolicy(from, disallowed) {
+  return {
+    from: { element: { type: from } },
+    disallow: { to: { element: { types: { anyOf: disallowed } } } },
+  };
+}
+
 export default defineConfig([
   globalIgnores([
     '.output/**',
@@ -58,140 +65,75 @@ export default defineConfig([
           default: 'allow',
           checkAllOrigins: true,
           policies: [
-            {
-              from: { element: { type: 'domain' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: [
-                        'entrypoints',
-                        'app',
-                        'features',
-                        'platform-extension',
-                        'platform-browser',
-                        'integration-echo',
-                        'player-core',
-                        'player-react',
-                        'shared',
-                      ],
-                    },
-                  },
-                },
-              },
-            },
-            {
-              from: { element: { type: 'features' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: [
-                        'entrypoints',
-                        'app',
-                        'platform-extension',
-                        'platform-browser',
-                        'integration-echo',
-                        'player-core',
-                      ],
-                    },
-                  },
-                },
-              },
-            },
+            createBoundaryPolicy('domain', [
+              'entrypoints',
+              'app',
+              'features',
+              'platform-extension',
+              'platform-browser',
+              'integration-echo',
+              'player-core',
+              'player-react',
+              'shared',
+            ]),
+            createBoundaryPolicy('features', [
+              'entrypoints',
+              'app',
+              'platform-extension',
+              'platform-browser',
+              'integration-echo',
+              'player-core',
+            ]),
+            createBoundaryPolicy('player-core', [
+              'entrypoints',
+              'app',
+              'features',
+              'platform-extension',
+              'platform-browser',
+              'integration-echo',
+              'player-react',
+            ]),
             {
               from: { element: { type: 'player-core' } },
               disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: [
-                        'entrypoints',
-                        'app',
-                        'features',
-                        'platform-extension',
-                        'platform-browser',
-                        'integration-echo',
-                        'player-react',
-                      ],
-                    },
-                  },
-                },
+                to: { module: { origin: 'external', source: ['react', 'react-dom', '@tanstack/react-query'] } },
               },
             },
-            {
-              from: { element: { type: 'player-core' } },
-              disallow: {
-                to: {
-                  module: { origin: 'external', source: ['react', 'react-dom', '@tanstack/react-query'] },
-                },
-              },
-            },
-            {
-              from: { element: { type: 'player-react' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: [
-                        'entrypoints',
-                        'app',
-                        'features',
-                        'platform-extension',
-                        'platform-browser',
-                        'integration-echo',
-                      ],
-                    },
-                  },
-                },
-              },
-            },
-            {
-              from: { element: { type: 'shared' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: [
-                        'entrypoints',
-                        'app',
-                        'features',
-                        'domain',
-                        'platform-extension',
-                        'platform-browser',
-                        'integration-echo',
-                        'player-core',
-                        'player-react',
-                      ],
-                    },
-                  },
-                },
-              },
-            },
-            {
-              from: { element: { type: 'platform-extension' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: ['entrypoints', 'app', 'features', 'integration-echo', 'player-core', 'player-react'],
-                    },
-                  },
-                },
-              },
-            },
-            {
-              from: { element: { type: 'platform-browser' } },
-              disallow: {
-                to: {
-                  element: {
-                    types: {
-                      anyOf: ['entrypoints', 'app', 'features', 'integration-echo', 'player-core', 'player-react'],
-                    },
-                  },
-                },
-              },
-            },
+            createBoundaryPolicy('player-react', [
+              'entrypoints',
+              'app',
+              'features',
+              'platform-extension',
+              'platform-browser',
+              'integration-echo',
+            ]),
+            createBoundaryPolicy('shared', [
+              'entrypoints',
+              'app',
+              'features',
+              'domain',
+              'platform-extension',
+              'platform-browser',
+              'integration-echo',
+              'player-core',
+              'player-react',
+            ]),
+            createBoundaryPolicy('platform-extension', [
+              'entrypoints',
+              'app',
+              'features',
+              'integration-echo',
+              'player-core',
+              'player-react',
+            ]),
+            createBoundaryPolicy('platform-browser', [
+              'entrypoints',
+              'app',
+              'features',
+              'integration-echo',
+              'player-core',
+              'player-react',
+            ]),
           ],
         },
       ],

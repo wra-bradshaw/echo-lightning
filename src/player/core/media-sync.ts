@@ -1,4 +1,4 @@
-export function shouldCorrectMediaDrift(driftSeconds: number, thresholdSeconds = 0.25): boolean {
+function shouldCorrectMediaDrift(driftSeconds: number, thresholdSeconds = 0.25): boolean {
   return Math.abs(driftSeconds) > thresholdSeconds;
 }
 

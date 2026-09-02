@@ -16,7 +16,7 @@ export function SettingsProvider({ children, store }: { children: ReactNode; sto
   return <SettingsContext.Provider value={settingsStore}>{children}</SettingsContext.Provider>;
 }
 
-export function useLightningSettings<T>(selector: (state: LightningSettingsState) => T): T {
+function useLightningSettings<T>(selector: (state: LightningSettingsState) => T): T {
   const store = useContext(SettingsContext);
   if (!store) throw new Error('useLightningSettings must be used inside SettingsProvider.');
   return useSyncExternalStore(
