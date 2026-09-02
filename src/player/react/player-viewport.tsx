@@ -493,283 +493,292 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
     <LazyMotion features={domMax} strict>
       <MotionConfig reducedMotion="user">
         <div
-        ref={viewportRef}
-        className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-white"
-        data-testid="classroom-player"
-        data-mode={state.mode}
-        tabIndex={-1}
-        onMouseMove={controls.onMouseMove}
-        onPointerMove={controls.onPointerMove}
-        onPointerDown={(event) => {
-          controls.onPointerDown(event);
-          playerRef.current?.focus();
-        }}
-        onKeyDown={controls.onKeyDown}
-        onFocusCapture={controls.onFocusCapture}
-        onBlurCapture={controls.onBlurCapture}
-      >
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-x-0 top-0 z-[999] flex items-start justify-between gap-4 p-3 transition-opacity duration-300 sm:p-5',
-            controls.visible ? 'opacity-100' : 'opacity-0',
-          )}
-          style={{
-            backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.4) 60%, transparent)',
+          ref={viewportRef}
+          role="button"
+          aria-label="Video player"
+          tabIndex={0}
+          className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-white"
+          data-testid="classroom-player"
+          data-mode={state.mode}
+          onMouseMove={controls.onMouseMove}
+          onPointerMove={controls.onPointerMove}
+          onPointerDown={(event) => {
+            controls.onPointerDown(event);
+            playerRef.current?.focus();
           }}
-          data-testid="player-top-controls"
-          data-visible={controls.visible}
+          onClick={() => playerRef.current?.focus()}
+          onKeyDown={controls.onKeyDown}
+          onFocusCapture={controls.onFocusCapture}
+          onBlurCapture={controls.onBlurCapture}
         >
-          <div className="pointer-events-auto min-w-0">{backLink}</div>
-        </div>
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-x-0 top-0 z-[999] flex items-start justify-between gap-4 p-3 transition-opacity duration-300 sm:p-5',
+              controls.visible ? 'opacity-100' : 'opacity-0',
+            )}
+            style={{
+              backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.4) 60%, transparent)',
+            }}
+            data-testid="player-top-controls"
+            data-visible={controls.visible}
+          >
+            <div className="pointer-events-auto min-w-0">{backLink}</div>
+          </div>
 
-        <div className="relative z-0 min-h-0 flex-1 overflow-hidden bg-black">
-          {state.mode === 'grid' ? (
-            <div
-              className="absolute inset-0 grid min-h-0 min-w-0 overflow-hidden"
-              data-testid="camera-grid"
-              style={{
-                gridTemplateColumns: `repeat(${Math.max(1, gridLayout.columns)}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${Math.max(1, gridLayout.rows)}, minmax(0, 1fr))`,
-                gap: 0,
-              }}
-            >
-              {activeSources.map((source) => (
-                <div key={source.id} className="min-h-0 min-w-0">
-                  <VideoStream
-                    source={source}
-                    autoPlay
-                    initialPosition={streamInitialPosition}
-                    captions={properties.captions}
-                    captionsEnabled={captionsEnabled}
-                    audioEnabled={state.audioId === source.id && !isMuted}
-                    volume={volume}
-                    playbackRate={playbackRate}
-                    onVideo={bindVideo}
-                    onPlay={() => handlePlay(source.id)}
-                    onPause={() => handlePause(source.id)}
-                    onTimeUpdate={recordPlaybackPosition}
-                    onMetadata={(element) => {
-                      if (element.videoWidth && element.videoHeight) {
-                        setAspectRatios((current) => ({
-                          ...current,
-                          [source.id]: element.videoWidth / element.videoHeight,
-                        }));
-                      }
+          <div className="relative z-0 min-h-0 flex-1 overflow-hidden bg-black">
+            {state.mode === 'grid' ? (
+              <div
+                className="absolute inset-0 grid min-h-0 min-w-0 overflow-hidden"
+                data-testid="camera-grid"
+                style={{
+                  gridTemplateColumns: `repeat(${Math.max(1, gridLayout.columns)}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${Math.max(1, gridLayout.rows)}, minmax(0, 1fr))`,
+                  gap: 0,
+                }}
+              >
+                {activeSources.map((source) => (
+                  <div key={source.id} className="min-h-0 min-w-0">
+                    <VideoStream
+                      source={source}
+                      autoPlay
+                      initialPosition={streamInitialPosition}
+                      captions={properties.captions}
+                      captionsEnabled={captionsEnabled}
+                      audioEnabled={state.audioId === source.id && !isMuted}
+                      volume={volume}
+                      playbackRate={playbackRate}
+                      onVideo={bindVideo}
+                      onPlay={() => handlePlay(source.id)}
+                      onPause={() => handlePause(source.id)}
+                      onTimeUpdate={recordPlaybackPosition}
+                      onMetadata={(element) => {
+                        if (element.videoWidth && element.videoHeight) {
+                          setAspectRatios((current) => ({
+                            ...current,
+                            [source.id]: element.videoWidth / element.videoHeight,
+                          }));
+                        }
+                      }}
+                      onVideoClick={togglePlayback}
+                      onSetAudio={() => dispatchPlayerAction({ type: 'set-audio', id: source.id })}
+                      showAudioControl
+                      controlsVisible={controls.visible}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <FocusLayout
+                mainSource={mainSource}
+                pipSources={sourceById(sources, pipIds)}
+                pipPositions={pipPositions}
+                viewportSize={viewportSize}
+                pipSize={pipSize}
+                initialPosition={streamInitialPosition}
+                properties={properties}
+                captionsEnabled={captionsEnabled}
+                playbackRate={playbackRate}
+                audioId={state.audioId}
+                isMuted={isMuted}
+                volume={volume}
+                bindVideo={bindVideo}
+                onPlay={handlePlay}
+                onPause={handlePause}
+                onTimeUpdate={recordPlaybackPosition}
+                onVideoClick={togglePlayback}
+                onPromote={handlePromote}
+                onMetadata={(id, element) => {
+                  if (element.videoWidth && element.videoHeight) {
+                    setAspectRatios((current) => ({ ...current, [id]: element.videoWidth / element.videoHeight }));
+                  }
+                }}
+                onPipDrop={handlePipDragEnd}
+                onResize={handlePipResize}
+                controlsVisible={controls.visible}
+              />
+            )}
+          </div>
+
+          <CaptionOverlay text={captionText} enabled={captionsEnabled} controlsVisible={controls.visible} />
+
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-x-0 bottom-0 z-[999] px-3 pt-20 pb-4 transition-opacity duration-300 sm:px-5 sm:pb-5',
+              controls.visible ? 'opacity-100' : 'pointer-events-none opacity-0',
+            )}
+            style={{
+              backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.4) 60%, transparent)',
+            }}
+            data-testid="player-bottom-controls"
+            data-visible={controls.visible}
+          >
+            <div className="pointer-events-none mx-auto flex max-w-5xl flex-col gap-2">
+              <div className="pointer-events-none flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
+                  onClick={togglePlayback}
+                >
+                  {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" weight="fill" />}
+                </Button>
+                <span className="text-xs text-white/80 tabular-nums">
+                  {formatDuration(currentTime)} / {formatDuration(duration)}
+                </span>
+                <div className="pointer-events-auto min-w-0 flex-1">
+                  <Slider
+                    aria-label="Lecture timeline"
+                    value={[Math.min(currentTime, duration || currentTime)]}
+                    min={0}
+                    max={duration || 1}
+                    step={1}
+                    onValueChange={(value) => {
+                      const next = Array.isArray(value) ? Number(value[0]) : Number(value);
+                      if (Number.isFinite(next)) setAllCurrentTime(next);
                     }}
-                    onVideoClick={togglePlayback}
-                    onSetAudio={() => dispatchPlayerAction({ type: 'set-audio', id: source.id })}
-                    showAudioControl
-                    controlsVisible={controls.visible}
+                    onValueCommitted={savePosition}
                   />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <FocusLayout
-              mainSource={mainSource}
-              pipSources={sourceById(sources, pipIds)}
-              pipPositions={pipPositions}
-              viewportSize={viewportSize}
-              pipSize={pipSize}
-              initialPosition={streamInitialPosition}
-              properties={properties}
-              captionsEnabled={captionsEnabled}
-              playbackRate={playbackRate}
-              audioId={state.audioId}
-              isMuted={isMuted}
-              volume={volume}
-              bindVideo={bindVideo}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onTimeUpdate={recordPlaybackPosition}
-              onVideoClick={togglePlayback}
-              onPromote={handlePromote}
-              onMetadata={(id, element) => {
-                if (element.videoWidth && element.videoHeight) {
-                  setAspectRatios((current) => ({ ...current, [id]: element.videoWidth / element.videoHeight }));
-                }
-              }}
-              onPipDrop={handlePipDragEnd}
-              onResize={handlePipResize}
-              controlsVisible={controls.visible}
-            />
-          )}
-        </div>
-
-        <CaptionOverlay text={captionText} enabled={captionsEnabled} controlsVisible={controls.visible} />
-
-        <div
-          className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-0 z-[999] px-3 pt-20 pb-4 transition-opacity duration-300 sm:px-5 sm:pb-5',
-            controls.visible ? 'opacity-100' : 'pointer-events-none opacity-0',
-          )}
-          style={{
-            backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.4) 60%, transparent)',
-          }}
-          data-testid="player-bottom-controls"
-          data-visible={controls.visible}
-        >
-          <div className="pointer-events-none mx-auto flex max-w-5xl flex-col gap-2">
-            <div className="pointer-events-none flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
-                aria-label={isPlaying ? 'Pause' : 'Play'}
-                onClick={togglePlayback}
-              >
-                {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" weight="fill" />}
-              </Button>
-              <span className="text-xs text-white/80 tabular-nums">
-                {formatDuration(currentTime)} / {formatDuration(duration)}
-              </span>
-              <div className="pointer-events-auto min-w-0 flex-1">
-                <Slider
-                  aria-label="Lecture timeline"
-                  value={[Math.min(currentTime, duration || currentTime)]}
-                  min={0}
-                  max={duration || 1}
-                  step={1}
-                  onValueChange={(value) => {
-                    const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                    if (Number.isFinite(next)) setAllCurrentTime(next);
-                  }}
-                  onValueCommitted={savePosition}
-                />
               </div>
-            </div>
-            <div className="pointer-events-none flex flex-wrap items-center justify-between gap-2">
-              <div className="pointer-events-auto flex items-center gap-2">
-                <Tabs
-                  value={state.mode}
-                  onValueChange={(value) => dispatchPlayerAction({ type: 'set-mode', mode: value as 'grid' | 'focus' })}
-                  aria-label="Player mode"
-                >
-                  <TabsList className="bg-white/10 text-white">
-                    <TabsTrigger
-                      value="grid"
-                      className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
-                    >
-                      Grid
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="focus"
-                      className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
-                    >
-                      Focus
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/15 hover:text-white"
-                    aria-label={`Streams ${state.selectedIds.length}/${sources.length}`}
-                    aria-expanded={streamMenuOpen}
-                    onClick={() => setStreamMenuOpen((open) => !open)}
+              <div className="pointer-events-none flex flex-wrap items-center justify-between gap-2">
+                <div className="pointer-events-auto flex items-center gap-2">
+                  <Tabs
+                    value={state.mode}
+                    onValueChange={(value) =>
+                      dispatchPlayerAction({ type: 'set-mode', mode: value as 'grid' | 'focus' })
+                    }
+                    aria-label="Player mode"
                   >
-                    Streams {state.selectedIds.length}/{sources.length} <CaretDown className="size-4" />
-                  </Button>
-                  {streamMenuOpen ? (
-                    <StreamManager
-                      sources={sources}
-                      selectedIds={state.selectedIds}
-                      audioId={state.audioId}
-                      onToggle={(id) => dispatchPlayerAction({ type: 'toggle', id })}
-                      onSetAudio={(id) => dispatchPlayerAction({ type: 'set-audio', id })}
-                      onClose={() => setStreamMenuOpen(false)}
-                    />
-                  ) : null}
-                </div>
-              </div>
-              <div className="pointer-events-auto flex items-center gap-2">
-                <Button
-                  variant={captionsEnabled ? 'secondary' : 'ghost'}
-                  size="sm"
-                  className={
-                    captionsEnabled
-                      ? 'bg-white text-black hover:bg-white/90 hover:text-black'
-                      : 'text-white hover:bg-white/15 hover:text-white'
-                  }
-                  aria-label={captionsEnabled ? 'Captions on' : 'Captions off'}
-                  onClick={() => setCaptionsEnabled(!captionsEnabled)}
-                >
-                  CC
-                </Button>
-                <div
-                  className="pointer-events-auto flex shrink-0 items-center gap-2"
-                  data-testid="player-volume-control"
-                >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
-                    aria-label={isMuted ? 'Unmute' : 'Mute'}
-                    onClick={() => setIsMuted(!isMuted)}
-                  >
-                    {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
-                  </Button>
-                  <div className="grid w-32 grid-cols-[1fr] overflow-hidden" data-testid="player-volume-slider-reveal">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Slider
-                        aria-label="Volume"
-                        data-testid="player-volume-slider"
-                        value={[playerVolumeToSliderValue(volume)]}
-                        min={0}
-                        max={100}
-                        step={PLAYER_VOLUME_SLIDER_STEP}
-                        onValueChange={(value) => {
-                          const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                          if (Number.isFinite(next)) {
-                            setAllVolume(sliderValueToPlayerVolume(next));
-                            setIsMuted(false);
-                          }
-                        }}
-                      />
-                      <span
-                        data-testid="player-volume-value"
-                        className="w-10 shrink-0 text-right text-xs text-white/80 tabular-nums"
+                    <TabsList className="bg-white/10 text-white">
+                      <TabsTrigger
+                        value="grid"
+                        className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
                       >
-                        {Math.round(volume * 100)}%
-                      </span>
-                    </div>
+                        Grid
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="focus"
+                        className="text-white/70 hover:bg-white/10 hover:text-white data-active:bg-white/20 data-active:text-white"
+                      >
+                        Focus
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                  <div className="relative">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-white hover:bg-white/15 hover:text-white"
+                      aria-label={`Streams ${state.selectedIds.length}/${sources.length}`}
+                      aria-expanded={streamMenuOpen}
+                      onClick={() => setStreamMenuOpen((open) => !open)}
+                    >
+                      Streams {state.selectedIds.length}/{sources.length} <CaretDown className="size-4" />
+                    </Button>
+                    {streamMenuOpen ? (
+                      <StreamManager
+                        sources={sources}
+                        selectedIds={state.selectedIds}
+                        audioId={state.audioId}
+                        onToggle={(id) => dispatchPlayerAction({ type: 'toggle', id })}
+                        onSetAudio={(id) => dispatchPlayerAction({ type: 'set-audio', id })}
+                        onClose={() => setStreamMenuOpen(false)}
+                      />
+                    ) : null}
                   </div>
                 </div>
-                <div
-                  className="pointer-events-auto flex shrink-0 items-center gap-2"
-                  data-testid="player-speed-control"
-                >
+                <div className="pointer-events-auto flex items-center gap-2">
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
-                    aria-label={`Playback speed ${playbackRate}x`}
+                    variant={captionsEnabled ? 'secondary' : 'ghost'}
+                    size="sm"
+                    className={
+                      captionsEnabled
+                        ? 'bg-white text-black hover:bg-white/90 hover:text-black'
+                        : 'text-white hover:bg-white/15 hover:text-white'
+                    }
+                    aria-label={captionsEnabled ? 'Captions on' : 'Captions off'}
+                    onClick={() => setCaptionsEnabled(!captionsEnabled)}
                   >
-                    <Gauge className="size-5" />
+                    CC
                   </Button>
-                  <div className="grid w-32 grid-cols-[1fr] overflow-hidden" data-testid="player-speed-slider-reveal">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Slider
-                        aria-label="Playback speed"
-                        data-testid="player-speed-slider"
-                        value={[speedToSlider(playbackRate)]}
-                        min={0}
-                        max={100}
-                        step={1}
-                        onValueChange={(value) => {
-                          const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                          if (Number.isFinite(next)) setAllPlaybackRate(sliderToSpeed(next));
-                        }}
-                      />
-                      <span
-                        data-testid="player-speed-value"
-                        className="w-12 shrink-0 text-right text-xs text-white/80 tabular-nums"
-                      >
-                        {Number.isInteger(playbackRate)
-                          ? `${playbackRate}x`
-                          : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`}
-                      </span>
+                  <div
+                    className="pointer-events-auto flex shrink-0 items-center gap-2"
+                    data-testid="player-volume-control"
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                      aria-label={isMuted ? 'Unmute' : 'Mute'}
+                      onClick={() => setIsMuted(!isMuted)}
+                    >
+                      {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
+                    </Button>
+                    <div
+                      className="grid w-32 grid-cols-[1fr] overflow-hidden"
+                      data-testid="player-volume-slider-reveal"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Slider
+                          aria-label="Volume"
+                          data-testid="player-volume-slider"
+                          value={[playerVolumeToSliderValue(volume)]}
+                          min={0}
+                          max={100}
+                          step={PLAYER_VOLUME_SLIDER_STEP}
+                          onValueChange={(value) => {
+                            const next = Array.isArray(value) ? Number(value[0]) : Number(value);
+                            if (Number.isFinite(next)) {
+                              setAllVolume(sliderValueToPlayerVolume(next));
+                              setIsMuted(false);
+                            }
+                          }}
+                        />
+                        <span
+                          data-testid="player-volume-value"
+                          className="w-10 shrink-0 text-right text-xs text-white/80 tabular-nums"
+                        >
+                          {Math.round(volume * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="pointer-events-auto flex shrink-0 items-center gap-2"
+                    data-testid="player-speed-control"
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                      aria-label={`Playback speed ${playbackRate}x`}
+                    >
+                      <Gauge className="size-5" />
+                    </Button>
+                    <div className="grid w-32 grid-cols-[1fr] overflow-hidden" data-testid="player-speed-slider-reveal">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Slider
+                          aria-label="Playback speed"
+                          data-testid="player-speed-slider"
+                          value={[speedToSlider(playbackRate)]}
+                          min={0}
+                          max={100}
+                          step={1}
+                          onValueChange={(value) => {
+                            const next = Array.isArray(value) ? Number(value[0]) : Number(value);
+                            if (Number.isFinite(next)) setAllPlaybackRate(sliderToSpeed(next));
+                          }}
+                        />
+                        <span
+                          data-testid="player-speed-value"
+                          className="w-12 shrink-0 text-right text-xs text-white/80 tabular-nums"
+                        >
+                          {Number.isInteger(playbackRate)
+                            ? `${playbackRate}x`
+                            : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -777,7 +786,6 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
             </div>
           </div>
         </div>
-      </div>
       </MotionConfig>
     </LazyMotion>
   );
