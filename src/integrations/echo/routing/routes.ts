@@ -73,59 +73,59 @@ export function parseEchoRoute(input: string | URL): EchoRoute {
   return { kind: 'unsupported', url: normalized };
 }
 
-function canonicalEchoPath(route: EchoRoute): string {
-  if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
-  if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
-  if (route.kind === 'classroom') {
-    return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
+export type EchoPathMode = 'canonical' | 'stock';
+export type EchoRewriteMode = 'input' | 'output';
+
+export function getEchoPath(route: EchoRoute, mode: EchoPathMode): string {
+  switch (mode) {
+    case 'canonical':
+    case 'stock':
+      if (route.kind === 'courses')
+        return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
+      if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
+      if (route.kind === 'classroom') return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
+      return new URL(route.url, 'https://echo360.net.au').pathname;
   }
-  return new URL(route.url, 'https://echo360.net.au').pathname;
+}
+
+export function normalizeEchoUrl(input: string | URL, mode: EchoPathMode): string {
+  const route = parseEchoRoute(input);
+  if (route.kind === 'unsupported' || route.kind === 'auth') return route.url;
+  const url = new URL(route.url);
+  url.pathname = getEchoPath(route, mode);
+  url.search = '';
+  url.hash = '';
+  return url.toString();
 }
 
 export function canonicalEchoUrl(input: string | URL): string {
-  const route = parseEchoRoute(input);
-  if (route.kind === 'unsupported' || route.kind === 'auth') return route.url;
-  const url = new URL(route.url);
-  url.pathname = canonicalEchoPath(route);
-  url.search = '';
-  url.hash = '';
-  return url.toString();
-}
-
-function stockEchoPath(route: EchoRoute): string {
-  if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
-  if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
-  if (route.kind === 'classroom') return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
-  return new URL(route.url, 'https://echo360.net.au').pathname;
+  return normalizeEchoUrl(input, 'canonical');
 }
 
 export function stockEchoUrl(input: string | URL): string {
-  const route = parseEchoRoute(input);
-  if (route.kind === 'unsupported' || route.kind === 'auth') return route.url;
-  const url = new URL(route.url);
-  url.pathname = stockEchoPath(route);
-  url.search = '';
-  url.hash = '';
-  return url.toString();
+  return normalizeEchoUrl(input, 'stock');
+}
+
+function parseRewriteRoute(url: URL): EchoRoute {
+  return parseEchoRoute(
+    isEchoHost(url.hostname) ? url : new URL(url.href.replace(url.origin, 'https://echo360.net.au')),
+  );
+}
+
+export function rewriteEchoUrl({ url }: { url: URL }, mode: EchoRewriteMode): URL | undefined {
+  const route = parseRewriteRoute(url);
+  if (mode === 'input' && (route.kind === 'unsupported' || route.kind === 'auth')) return undefined;
+  const rewritten = new URL(url.href);
+  if (route.kind !== 'unsupported' && route.kind !== 'auth') rewritten.pathname = getEchoPath(route, 'canonical');
+  return rewritten;
 }
 
 export function rewriteEchoInput({ url }: { url: URL }): URL | undefined {
-  const route = parseEchoRoute(
-    isEchoHost(url.hostname) ? url : new URL(url.href.replace(url.origin, 'https://echo360.net.au')),
-  );
-  if (route.kind === 'unsupported' || route.kind === 'auth') return undefined;
-  const rewritten = new URL(url.href);
-  rewritten.pathname = canonicalEchoPath(route);
-  return rewritten;
+  return rewriteEchoUrl({ url }, 'input');
 }
 
 export function rewriteEchoOutput({ url }: { url: URL }): URL | undefined {
-  const rewritten = new URL(url.href);
-  const route = parseEchoRoute(
-    isEchoHost(url.hostname) ? url : new URL(url.href.replace(url.origin, 'https://echo360.net.au')),
-  );
-  if (route.kind !== 'unsupported' && route.kind !== 'auth') rewritten.pathname = canonicalEchoPath(route);
-  return rewritten;
+  return rewriteEchoUrl({ url }, 'output');
 }
 
 export function isEchoAuthUrl(input: string | URL): boolean {

@@ -1,3 +1,12 @@
 export { createAuthenticatedEchoGateway } from './gateway';
-export { canonicalEchoUrl, rewriteEchoInput, rewriteEchoOutput } from './routing/routes';
-export { isEchoHost } from './routing/url';
+export {
+  canonicalEchoUrl,
+  getEchoPath,
+  normalizeEchoUrl,
+  rewriteEchoInput,
+  rewriteEchoOutput,
+  rewriteEchoUrl,
+  stockEchoUrl,
+  isEchoAuthUrl,
+} from './routing/routes';
+export { isEchoHost, isEchoUrl, sameOriginUrl } from './routing/url';

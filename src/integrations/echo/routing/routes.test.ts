@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalEchoUrl, isReplacementRoute, parseEchoRoute, rewriteEchoInput, rewriteEchoOutput } from './routes';
+import {
+  canonicalEchoUrl,
+  getEchoPath,
+  isReplacementRoute,
+  normalizeEchoUrl,
+  parseEchoRoute,
+  rewriteEchoInput,
+  rewriteEchoOutput,
+} from './routes';
 
 describe('parseEchoRoute', () => {
   it('recognizes authentication locations', () =>
@@ -29,11 +37,23 @@ describe('parseEchoRoute', () => {
       'https://echo360.net.au/lesson/lesson%201/classroom',
     );
   });
+  it('normalizes canonical and stock URLs through the shared helper', () => {
+    const input = 'https://echo360.net.au/home?tab=recent#top';
+    expect(normalizeEchoUrl(input, 'canonical')).toBe('https://echo360.net.au/courses');
+    expect(normalizeEchoUrl(input, 'stock')).toBe('https://echo360.net.au/courses');
+    expect(getEchoPath(parseEchoRoute(input), 'canonical')).toBe('/courses');
+    expect(getEchoPath(parseEchoRoute(input), 'stock')).toBe('/courses');
+  });
   it('provides TanStack input and output rewrites', () => {
     expect(rewriteEchoInput({ url: new URL('https://echo360.net.au/home') })?.pathname).toBe('/courses');
     expect(rewriteEchoOutput({ url: new URL('https://echo360.net.au/sections/one') })?.pathname).toBe(
       '/section/one/home',
     );
+  });
+  it('shares rewrite behavior while preserving output fallback URLs', () => {
+    const unsupported = new URL('https://example.com/unknown?keep=true');
+    expect(rewriteEchoInput({ url: unsupported })).toBeUndefined();
+    expect(rewriteEchoOutput({ url: unsupported })?.href).toBe(unsupported.href);
   });
   it('drops query strings from snapshots', () =>
     expect(parseEchoRoute('https://echo360.net.au/unknown?token=secret')).toEqual({
