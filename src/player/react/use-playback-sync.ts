@@ -2,6 +2,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { EchoGateway } from '../../domain';
 import { createPlaybackPositionQueue, type PlaybackPositionQueue } from '../core/playback-sync';
+import { useDocumentEvent } from '../../shared/hooks/use-document-event';
+import { useInterval } from '../../shared/hooks/use-interval';
+import { useWindowEvent } from '../../shared/hooks/use-window-event';
 
 export type PlaybackSyncOptions = {
   gateway: EchoGateway;
@@ -10,11 +13,29 @@ export type PlaybackSyncOptions = {
   duration?: number;
   enabled?: boolean;
   windowTarget?: Window;
+  periodicIntervalMs?: number;
 };
 
 export type PlaybackSync = {
   savePosition: () => void;
 };
+
+function getEffectiveDuration(
+  configuredDuration: number | undefined,
+  mediaDuration: number | undefined,
+): number | undefined {
+  if (Number.isFinite(configuredDuration) && configuredDuration !== undefined && configuredDuration > 0)
+    return configuredDuration;
+  if (Number.isFinite(mediaDuration) && mediaDuration !== undefined && mediaDuration > 0) return mediaDuration;
+  return undefined;
+}
+
+function wholeClampedSeconds(position: number | undefined, duration: number | undefined): number | undefined {
+  if (position === undefined || !Number.isFinite(position)) return undefined;
+  const wholePosition = Math.max(0, Math.floor(position));
+  if (!Number.isFinite(duration) || duration === undefined || duration <= 0) return wholePosition;
+  return Math.min(wholePosition, Math.floor(duration));
+}
 
 export function usePlaybackSync({
   gateway,
@@ -23,6 +44,7 @@ export function usePlaybackSync({
   duration,
   enabled = true,
   windowTarget,
+  periodicIntervalMs = 10_000,
 }: PlaybackSyncOptions): PlaybackSync {
   const leaderRef = useRef(leader);
   const durationRef = useRef(duration);
@@ -33,13 +55,17 @@ export function usePlaybackSync({
     retry: false,
   });
   const mutationRef = useRef(mutation.mutateAsync);
+  const gatewayRef = useRef(gateway);
+  const mediaIdRef = useRef(mediaId);
 
   useLayoutEffect(() => {
     leaderRef.current = leader;
     durationRef.current = duration;
     mutationRef.current = mutation.mutateAsync;
+    gatewayRef.current = gateway;
+    mediaIdRef.current = mediaId;
     if (leader && Number.isFinite(leader.currentTime)) positionRef.current = leader.currentTime;
-  }, [duration, leader, mutation.mutateAsync]);
+  }, [duration, gateway, leader, mediaId, mutation.mutateAsync]);
 
   useLayoutEffect(() => {
     if (!enabled || !mediaId) return;
@@ -57,15 +83,22 @@ export function usePlaybackSync({
     if (Number.isFinite(currentLeader.currentTime)) positionRef.current = currentLeader.currentTime;
     const position = positionRef.current;
     if (position === undefined) return;
-    const configuredDuration = durationRef.current;
-    const mediaDuration = currentLeader.duration;
-    const effectiveDuration =
-      Number.isFinite(configuredDuration) && configuredDuration !== undefined && configuredDuration > 0
-        ? configuredDuration
-        : Number.isFinite(mediaDuration) && mediaDuration > 0
-          ? mediaDuration
-          : undefined;
+    const effectiveDuration = getEffectiveDuration(durationRef.current, currentLeader.duration);
     queueRef.current.save(position, effectiveDuration);
+  }, []);
+
+  const saveCurrentPositionBeacon = useCallback(() => {
+    const currentLeader = leaderRef.current;
+    const currentMediaId = mediaIdRef.current;
+    const currentGateway = gatewayRef.current;
+    if (!currentLeader || !currentMediaId) return;
+    if (Number.isFinite(currentLeader.currentTime)) positionRef.current = currentLeader.currentTime;
+    const position = positionRef.current;
+    if (position === undefined) return;
+    const effectiveDuration = getEffectiveDuration(durationRef.current, currentLeader.duration);
+    const seconds = wholeClampedSeconds(position, effectiveDuration);
+    if (seconds === undefined) return;
+    void currentGateway.savePlayerPosition(currentMediaId, seconds, { keepalive: true }).catch(() => undefined);
   }, []);
 
   useLayoutEffect(() => {
@@ -74,18 +107,46 @@ export function usePlaybackSync({
       if (Number.isFinite(leader.currentTime)) positionRef.current = leader.currentTime;
     };
     const savePosition = () => saveCurrentPosition();
-    const page = windowTarget ?? (typeof window === 'undefined' ? undefined : window);
     leader.addEventListener('timeupdate', rememberPosition);
     leader.addEventListener('pause', savePosition);
     leader.addEventListener('seeked', savePosition);
-    page?.addEventListener('pagehide', savePosition, true);
     return () => {
       leader.removeEventListener('timeupdate', rememberPosition);
       leader.removeEventListener('pause', savePosition);
       leader.removeEventListener('seeked', savePosition);
-      page?.removeEventListener('pagehide', savePosition, true);
     };
-  }, [enabled, leader, mediaId, saveCurrentPosition, windowTarget]);
+  }, [enabled, leader, mediaId, saveCurrentPosition]);
+
+  const documentTarget = windowTarget?.document ?? (typeof document !== 'undefined' ? document : undefined);
+
+  useDocumentEvent(
+    'visibilitychange',
+    () => {
+      if (documentTarget?.visibilityState === 'hidden') saveCurrentPositionBeacon();
+    },
+    { enabled: enabled && Boolean(mediaId), documentTarget },
+  );
+
+  useWindowEvent('pagehide', () => saveCurrentPositionBeacon(), {
+    enabled: enabled && Boolean(mediaId),
+    windowTarget,
+    capture: true,
+  });
+
+  useWindowEvent('beforeunload', () => saveCurrentPositionBeacon(), {
+    enabled: enabled && Boolean(mediaId),
+    windowTarget,
+  });
+
+  useInterval(
+    () => {
+      const currentLeader = leaderRef.current;
+      if (!currentLeader) return;
+      if (currentLeader.paused) return;
+      saveCurrentPosition();
+    },
+    enabled && mediaId && leader ? periodicIntervalMs : null,
+  );
 
   return { savePosition: saveCurrentPosition };
 }

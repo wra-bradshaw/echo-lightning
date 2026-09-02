@@ -7,6 +7,7 @@ export type PageFetchRequest = {
   method: string;
   headers: Array<[string, string]>;
   body?: string;
+  keepalive?: boolean;
 };
 
 export type PageFetchResponse = {

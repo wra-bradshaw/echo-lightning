@@ -44,6 +44,16 @@ describe('Echo gateway', () => {
     expect(options).toMatchObject({ method: 'POST', credentials: 'include' });
   });
 
+  it('sends keepalive flag so the position survives page unload', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ status: 'ok' }), { status: 200 }));
+    const gateway = createEchoGateway({ origin: 'https://echo360.net.au', fetcher });
+
+    await expect(gateway.savePlayerPosition('media-1', 12.9, { keepalive: true })).resolves.toBeUndefined();
+
+    const [, options] = fetcher.mock.calls[0]!;
+    expect(options).toMatchObject({ keepalive: true });
+  });
+
   it('rejects an unsuccessful position response', async () => {
     const gateway = createEchoGateway({
       origin: 'https://echo360.net.au',

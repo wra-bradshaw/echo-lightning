@@ -45,4 +45,16 @@ describe('Echo transport', () => {
       expect.objectContaining({ credentials: 'include', method: 'POST' }),
     );
   });
+
+  it('forwards keepalive flag so pagehide requests survive unload', async () => {
+    const fetcher = vi.fn(async () => response({ status: 'ok' }));
+    const transport = new EchoTransport('https://echo360.net.au', fetcher);
+
+    await transport.post('/api/player-position', () => undefined, { keepalive: true } as unknown as Record<
+      string,
+      unknown
+    >);
+
+    expect(fetcher).toHaveBeenCalledWith(expect.any(URL), expect.objectContaining({ keepalive: true }));
+  });
 });

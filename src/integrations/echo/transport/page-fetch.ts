@@ -13,16 +13,20 @@ async function requestBody(
 ): Promise<{
   request: Request;
   body?: string;
+  keepalive: boolean;
 }> {
   const request = new Request(input, init);
-  if (request.method === 'GET' || request.method === 'HEAD') return { request };
-  return { request, body: await request.clone().text() };
+  const keepalive =
+    Boolean((init as RequestInit & { keepalive?: boolean })?.keepalive) ||
+    Boolean((request as Request & { keepalive?: boolean }).keepalive);
+  if (request.method === 'GET' || request.method === 'HEAD') return { request, keepalive };
+  return { request, body: await request.clone().text(), keepalive };
 }
 
 export function createPageFetch(target: Window = window): typeof fetch {
   return async (input, init) => {
     const resolvedInput = typeof input === 'string' ? new URL(input, target.location.href) : input;
-    const { request, body } = await requestBody(resolvedInput, init);
+    const { request, body, keepalive } = await requestBody(resolvedInput, init);
     const id = `request-${++requestSequence}`;
     const payload: PageFetchRequest = {
       id,
@@ -30,6 +34,7 @@ export function createPageFetch(target: Window = window): typeof fetch {
       method: request.method,
       headers: Array.from(request.headers.entries()),
       ...(body === undefined ? {} : { body }),
+      ...(keepalive ? { keepalive: true } : {}),
     };
 
     return new Promise<Response>((resolve, reject) => {

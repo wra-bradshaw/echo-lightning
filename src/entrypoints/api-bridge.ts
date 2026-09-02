@@ -17,6 +17,48 @@ export function installPageFetchBridge(target: Window = window): void {
   page[marker] = true;
   target.document.addEventListener(PAGE_FETCH_REQUEST_EVENT, (event) => {
     const request = JSON.parse(String((event as CustomEvent<string>).detail)) as PageFetchRequest;
+    if (request.keepalive) {
+      try {
+        const url = new URL(request.url, target.location.href);
+        if (url.origin !== target.location.origin) throw new TypeError('Page fetch requests must stay same-origin.');
+        const beaconOk = (() => {
+          try {
+            if (typeof target.navigator.sendBeacon === 'function') {
+              return target.navigator.sendBeacon(url.toString());
+            }
+          } catch {
+            return false;
+          }
+          return false;
+        })();
+        if (!beaconOk) {
+          void target
+            .fetch(url, {
+              method: request.method,
+              headers: request.headers,
+              body: request.body,
+              credentials: 'include',
+              keepalive: true,
+            } as RequestInit & { keepalive: boolean })
+            .catch(() => undefined);
+        }
+        sendResponse(target.document, {
+          id: request.id,
+          status: 200,
+          headers: [],
+          body: JSON.stringify({ status: 'ok' }),
+        });
+      } catch (error) {
+        sendResponse(target.document, {
+          id: request.id,
+          status: 0,
+          headers: [],
+          body: '',
+          error: error instanceof Error ? error.message : 'Page fetch failed.',
+        });
+      }
+      return;
+    }
     void (async () => {
       try {
         const url = new URL(request.url, target.location.href);
@@ -26,6 +68,7 @@ export function installPageFetchBridge(target: Window = window): void {
           headers: request.headers,
           body: request.body,
           credentials: 'include',
+          ...(request.keepalive ? ({ keepalive: true } as RequestInit & { keepalive: boolean }) : {}),
         });
         sendResponse(target.document, {
           id: request.id,
