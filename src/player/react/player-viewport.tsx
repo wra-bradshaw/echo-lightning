@@ -247,9 +247,12 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
       const next = { ...current };
       if (element) next[id] = element;
       else delete next[id];
-      videoMap.current = next;
       return next;
     });
+    const next = { ...videoMap.current };
+    if (element) next[id] = element;
+    else delete next[id];
+    videoMap.current = next;
   }, []);
 
   const getManagedVideoElements = useCallback(() => {
