@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 function usePassiveEffect(effect: EffectCallback, dependencies: DependencyList): void {
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional reusable abstraction over useEffect that forwards dynamic deps; callers provide correct deps
   useEffect(() => effect(), dependencies);
 }
 
