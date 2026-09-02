@@ -474,6 +474,7 @@ export function PlayerViewport({
         data-testid="classroom-player"
         data-mode={state.mode}
         tabIndex={-1}
+        onMouseMove={controls.onMouseMove}
         onPointerMove={controls.onPointerMove}
         onPointerDown={(event) => {
           controls.onPointerDown(event);
