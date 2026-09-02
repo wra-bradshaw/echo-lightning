@@ -14,7 +14,18 @@ import { useLightningSettingsBundle } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Progress } from '../shared/ui';
-import { classroomRoute, courseDetailsRoute, coursesRoute, sectionRoute } from './router';
+import { getRouteApi } from '@tanstack/react-router';
+import {
+  classroomRoutePath,
+  courseDetailsRoutePath,
+  coursesRoutePath,
+  sectionRoutePath,
+} from './routes';
+
+const coursesRouteApi = getRouteApi(coursesRoutePath);
+const courseDetailsRouteApi = getRouteApi(courseDetailsRoutePath);
+const sectionRouteApi = getRouteApi(sectionRoutePath);
+const classroomRouteApi = getRouteApi(classroomRoutePath);
 
 function LoadingState({ label }: { label: string }) {
   return (
@@ -57,7 +68,7 @@ function sectionHref(sectionId: string) {
 }
 
 export function CoursesPage() {
-  const { gateway } = coursesRoute.useRouteContext();
+  const { gateway } = coursesRouteApi.useRouteContext();
   const coursesQuery = useCourses(gateway);
   const [search, setSearch] = useState('');
   const courses = useMemo(() => {
@@ -139,7 +150,7 @@ export function CoursesPage() {
 }
 
 export function CourseDetailsPage() {
-  const { courseId } = courseDetailsRoute.useParams();
+  const { courseId } = courseDetailsRouteApi.useParams();
   return (
     <>
       <Link
@@ -155,8 +166,8 @@ export function CourseDetailsPage() {
 }
 
 export function SectionPage() {
-  const { sectionId } = sectionRoute.useParams();
-  const { gateway } = sectionRoute.useRouteContext();
+  const { sectionId } = sectionRouteApi.useParams();
+  const { gateway } = sectionRouteApi.useRouteContext();
   const coursesQuery = useCourses(gateway);
   const syllabusQuery = useSectionSyllabus(gateway, sectionId);
   const course = coursesQuery.data?.find((candidate) => candidate.sectionId === sectionId);
@@ -245,8 +256,8 @@ export function SectionPage() {
 }
 
 export function ClassroomPage() {
-  const { lessonId } = classroomRoute.useParams();
-  const { gateway } = classroomRoute.useRouteContext();
+  const { lessonId } = classroomRouteApi.useParams();
+  const { gateway } = classroomRouteApi.useRouteContext();
   const { lesson, sectionId, isLoading, isError } = useLesson(gateway, lessonId);
   if (isLoading) {
     return (

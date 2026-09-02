@@ -11,13 +11,13 @@ import type { LightningSettingsStore } from '../features/settings';
 import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo';
 import { AppShell } from './app-shell';
 import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionPage } from './pages';
-
-type LightningRouterContext = {
-  gateway: EchoGateway;
-  queryClient: QueryClient;
-  onUseOriginal: (url?: string) => void;
-  settingsStore?: LightningSettingsStore;
-};
+import {
+  classroomRoutePath,
+  courseDetailsRoutePath,
+  coursesRoutePath,
+  sectionRoutePath,
+  type LightningRouterContext,
+} from './routes';
 
 function UnsupportedPage() {
   return (
@@ -40,20 +40,20 @@ const rootRoute = createRootRouteWithContext<LightningRouterContext>()({
   notFoundComponent: UnsupportedPage,
 });
 
-export const coursesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/courses', component: CoursesPage });
+export const coursesRoute = createRoute({ getParentRoute: () => rootRoute, path: coursesRoutePath, component: CoursesPage });
 export const courseDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/courses/$courseId',
+  path: courseDetailsRoutePath,
   component: CourseDetailsPage,
 });
 export const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/section/$sectionId/home',
+  path: sectionRoutePath,
   component: SectionPage,
 });
 export const classroomRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/lesson/$lessonId/classroom',
+  path: classroomRoutePath,
   component: ClassroomPage,
 });
 
