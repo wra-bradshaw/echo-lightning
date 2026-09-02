@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
+import { useDocumentVisibility } from './use-document-visibility';
 
 export type KeepPlayingOptions = {
   isPlaying: boolean;
@@ -12,36 +13,36 @@ export function useKeepPlaying({ isPlaying, getVideoElements }: KeepPlayingOptio
     wasPlayingRef.current = isPlaying;
   }, [isPlaying]);
 
-  useLayoutEffect(() => {
-    const resumeIfNeeded = () => {
-      if (!wasPlayingRef.current) return;
-      for (const element of getVideoElements()) {
-        if (element.paused && !element.ended) void element.play().catch(() => undefined);
-      }
-    };
+  const resumeIfNeeded = useCallback(() => {
+    if (!wasPlayingRef.current) return;
+    for (const element of getVideoElements()) {
+      if (element.paused && !element.ended) void element.play().catch(() => undefined);
+    }
+  }, [getVideoElements]);
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') resumeIfNeeded();
+  const handleVisibilityChange = useCallback(
+    (visibilityState: DocumentVisibilityState) => {
+      if (visibilityState === 'visible') resumeIfNeeded();
       else wasPlayingRef.current = isPlaying;
-    };
+    },
+    [isPlaying, resumeIfNeeded],
+  );
 
+  useDocumentVisibility({ onChange: handleVisibilityChange });
+
+  useLayoutEffect(() => {
     const handleWindowFocus = () => resumeIfNeeded();
     const handleWindowBlur = () => {
       wasPlayingRef.current = isPlaying;
     };
-
     const handlePageShow = () => resumeIfNeeded();
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleWindowFocus);
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('pageshow', handlePageShow);
-
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [getVideoElements, isPlaying]);
+  }, [isPlaying, resumeIfNeeded]);
 }

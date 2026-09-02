@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { EchoGateway } from '../../domain';
 import { createPlaybackPositionQueue, type PlaybackPositionQueue } from '../core/playback-sync';
+import { useDocumentVisibility } from './use-document-visibility';
 
 export type PlaybackSyncOptions = {
   gateway: EchoGateway;
@@ -116,25 +117,27 @@ export function usePlaybackSync({
 
   const documentTarget = windowTarget?.document ?? (typeof document !== 'undefined' ? document : undefined);
 
+  const handleVisibilityChange = useCallback(
+    (visibilityState: DocumentVisibilityState) => {
+      if (enabled && mediaId && visibilityState === 'hidden') saveCurrentPositionBeacon();
+    },
+    [enabled, mediaId, saveCurrentPositionBeacon],
+  );
+  useDocumentVisibility({ documentTarget, onChange: handleVisibilityChange });
+
   useLayoutEffect(() => {
     if (!enabled || !mediaId) return;
     const targetWindow = windowTarget ?? (typeof window === 'undefined' ? undefined : window);
-    const targetDocument = documentTarget;
-    if (!targetWindow || !targetDocument) return;
-    const handleVisibilityChange = () => {
-      if (targetDocument.visibilityState === 'hidden') saveCurrentPositionBeacon();
-    };
+    if (!targetWindow) return;
     const handlePageHide = () => saveCurrentPositionBeacon();
     const handleBeforeUnload = () => saveCurrentPositionBeacon();
-    targetDocument.addEventListener('visibilitychange', handleVisibilityChange);
     targetWindow.addEventListener('pagehide', handlePageHide, true);
     targetWindow.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      targetDocument.removeEventListener('visibilitychange', handleVisibilityChange);
       targetWindow.removeEventListener('pagehide', handlePageHide, true);
       targetWindow.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [documentTarget, enabled, mediaId, saveCurrentPositionBeacon, windowTarget]);
+  }, [enabled, mediaId, saveCurrentPositionBeacon, windowTarget]);
 
   useLayoutEffect(() => {
     if (!enabled || !mediaId || !leader) return;

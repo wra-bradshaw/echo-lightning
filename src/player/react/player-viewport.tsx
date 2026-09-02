@@ -15,6 +15,7 @@ import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { usePipDrag } from './use-pip-drag';
 import { usePipResize } from './use-pip-resize';
+import { getPipHeight, getPipMaxWidth, PIP_MIN_HEIGHT, PIP_MIN_WIDTH } from '../core/pip-constants';
 import type { EchoGateway, PlayerProperties, PlayerSource, SyllabusItem } from '../../domain';
 import { calculateGridLayout } from '../core/grid-layout';
 import {
@@ -214,21 +215,18 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
   const [pipSizeOverride, setPipSizeOverride] = usePersistedState(savedPipSize ?? null, null, (value) => value);
   const defaultPipSize = useMemo(
     () => ({
-      width: Math.min(320, Math.max(148, viewportSize.width * 0.22)),
-      height: Math.min(180, Math.max(83, (viewportSize.width * 0.22 * 9) / 16)),
+      width: Math.min(320, Math.max(PIP_MIN_WIDTH, viewportSize.width * 0.22)),
+      height: Math.min(180, Math.max(PIP_MIN_HEIGHT, getPipHeight(viewportSize.width * 0.22))),
     }),
     [viewportSize.width],
   );
   const pipSize = useMemo(() => {
     if (!pipSizeOverride) return defaultPipSize;
-    const maxWidthByViewport = Math.max(148, viewportSize.width - 32);
-    const maxHeightByViewport = Math.max(83, viewportSize.height - 32);
-    const maxWidthByHeight = (maxHeightByViewport * 16) / 9;
-    const maxWidth = Math.min(480, maxWidthByViewport, maxWidthByHeight);
-    const width = Math.max(148, Math.min(maxWidth, pipSizeOverride.width));
-    const height = (width * 9) / 16;
+    const maxWidth = getPipMaxWidth(viewportSize);
+    const width = Math.max(PIP_MIN_WIDTH, Math.min(maxWidth, pipSizeOverride.width));
+    const height = getPipHeight(width);
     return { width, height };
-  }, [defaultPipSize, pipSizeOverride, viewportSize.height, viewportSize.width]);
+  }, [defaultPipSize, pipSizeOverride, viewportSize]);
   const handlePipResize = useCallback(
     (size: PipSize) => {
       setPipSizeOverride(size);
@@ -1009,7 +1007,7 @@ function DraggablePip({
 }) {
   void _controlsVisible;
   const { isDragging, displayCoordinates, handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel } =
-    usePipDrag(coordinates, pipSize, viewportSize, onPipDrop, source.id, () => onPromote(source.id));
+    usePipDrag(coordinates, onPipDrop, source.id, () => onPromote(source.id));
   const resizeHandle = usePipResize(pipSize, viewportSize, position.corner, onResize);
   const handleConfig = {
     'top-left': {
