@@ -26,6 +26,7 @@ import type { PlayerAction } from '../core/player-state';
 import { synchronizeSecondaryVideo } from '../core/media-sync';
 import { useCaptionTracks } from './use-caption-tracks';
 import { useControlVisibility } from './use-control-visibility';
+import { useKeepPlaying } from './use-keep-playing';
 import { useElementSize } from './use-element-size';
 import { useMediaClock } from './use-media-clock';
 import { useMediaVolume } from './use-media-volume';
@@ -276,6 +277,11 @@ export function PlayerViewport({
 
   const handlePause = useCallback(
     (id: string) => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        const target = getManagedVideoElements().find((element) => element.dataset.streamId === id);
+        if (target && target.paused) void target.play().catch(() => undefined);
+        return;
+      }
       if (syncing.current) return;
       setIsPlaying(false);
       syncing.current = true;
@@ -406,6 +412,8 @@ export function PlayerViewport({
     target: playerRef,
     volume,
   });
+
+  useKeepPlaying({ isPlaying, getVideoElements: getManagedVideoElements });
 
   const backLink = sectionId ? (
     <Link
