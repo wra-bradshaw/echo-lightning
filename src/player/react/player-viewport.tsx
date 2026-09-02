@@ -42,6 +42,11 @@ import { useKeepPlaying } from './use-keep-playing';
 import { useElementSize } from './use-element-size';
 import { useMediaClock } from './use-media-clock';
 import { useMediaVolume } from './use-media-volume';
+import { useMediaPlaybackRate } from './use-media-playback-rate';
+import { usePersistedCaptionsEnabled } from './use-persisted-captions';
+import { usePersistedMuted } from './use-persisted-muted';
+import { usePersistedPlaybackRate } from './use-persisted-playback-rate';
+import { usePersistedVolume } from './use-persisted-volume';
 import { usePlayerHotkeys } from './use-player-hotkeys';
 import { usePlaybackSync } from './use-playback-sync';
 import { usePlayerState } from './use-player-state';
@@ -54,15 +59,22 @@ type PlayerViewportProps = {
   lesson: SyllabusItem;
   properties: PlayerProperties;
   sectionId?: string;
-  onUseOriginal: () => void;
   savedSelectedIds?: readonly string[];
   onSelectedIdsChange?: (ids: readonly string[]) => void;
   savedPlayerState?: import('../core/player-state').PlayerState;
   onPlayerStateChange?: (state: import('../core/player-state').PlayerState) => void;
   savedPipSize?: import('../core/pip-placement').PipSize;
   onPipSizeChange?: (size: import('../core/pip-placement').PipSize) => void;
-  captionsEnabled: boolean;
-  onCaptionsEnabledChange: (enabled: boolean) => void;
+  savedVolume?: number;
+  onVolumeChange?: (volume: number) => void;
+  savedPlaybackRate?: number;
+  onPlaybackRateChange?: (rate: number) => void;
+  savedCaptionsEnabled?: boolean;
+  onCaptionsEnabledChange?: (enabled: boolean) => void;
+  savedIsMuted?: boolean;
+  onIsMutedChange?: (muted: boolean) => void;
+  captionsEnabled?: boolean;
+  onCaptionsEnabledChangeLegacy?: (enabled: boolean) => void;
 };
 
 type VideoElements = Record<string, HTMLVideoElement>;
@@ -100,15 +112,22 @@ export function PlayerViewport({
   lesson,
   properties,
   sectionId,
-  onUseOriginal,
   savedSelectedIds,
   onSelectedIdsChange,
   savedPlayerState,
   onPlayerStateChange,
   savedPipSize,
   onPipSizeChange,
-  captionsEnabled,
+  savedVolume,
+  onVolumeChange,
+  savedPlaybackRate,
+  onPlaybackRateChange,
+  savedCaptionsEnabled,
   onCaptionsEnabledChange,
+  savedIsMuted,
+  onIsMutedChange,
+  captionsEnabled: legacyCaptionsEnabled,
+  onCaptionsEnabledChangeLegacy,
 }: PlayerViewportProps) {
   const sources = properties.sources;
   const sourceIds = useMemo(() => sources.map((source) => source.id), [sources]);
@@ -120,9 +139,15 @@ export function PlayerViewport({
     onPlayerStateChange,
   );
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [volume, setVolume] = usePersistedVolume(savedVolume, onVolumeChange);
+  const [playbackRate, setPlaybackRate] = usePersistedPlaybackRate(savedPlaybackRate, onPlaybackRateChange);
+  const resolvedCaptionsEnabled = savedCaptionsEnabled ?? legacyCaptionsEnabled;
+  const resolvedOnCaptionsChange = onCaptionsEnabledChange ?? onCaptionsEnabledChangeLegacy;
+  const [captionsEnabled, setCaptionsEnabled] = usePersistedCaptionsEnabled(
+    resolvedCaptionsEnabled,
+    resolvedOnCaptionsChange,
+  );
+  const [isMuted, setIsMuted] = usePersistedMuted(savedIsMuted, onIsMutedChange);
   const [playbackPosition, setPlaybackPosition] = useState(properties.positionSeconds);
   const [videoElements, setVideoElements] = useState<VideoElements>({});
   const videoMap = useRef<VideoElements>({});
@@ -262,7 +287,7 @@ export function PlayerViewport({
       setPlaybackRate(rate);
       for (const element of getManagedVideoElements()) element.playbackRate = rate;
     },
-    [getManagedVideoElements],
+    [getManagedVideoElements, setPlaybackRate],
   );
 
   const setAllVolume = useCallback(
@@ -272,7 +297,7 @@ export function PlayerViewport({
       const nativeVolume = Math.min(1, next);
       for (const element of getManagedVideoElements()) element.volume = nativeVolume;
     },
-    [getManagedVideoElements],
+    [getManagedVideoElements, setVolume],
   );
 
   const togglePlayback = useCallback(() => {
@@ -409,13 +434,13 @@ export function PlayerViewport({
           seekPlaybackPosition(position + action.seconds);
           break;
         case 'toggle-captions':
-          onCaptionsEnabledChange(!captionsEnabled);
+          setCaptionsEnabled(!captionsEnabled);
           break;
         case 'toggle-fullscreen':
           toggleFullscreen();
           break;
         case 'toggle-mute':
-          setIsMuted((muted) => !muted);
+          setIsMuted(!isMuted);
           break;
         case 'toggle-picture-in-picture':
           togglePictureInPicture();
@@ -429,7 +454,9 @@ export function PlayerViewport({
       captionsEnabled,
       currentTime,
       getCurrentLeaderVideo,
-      onCaptionsEnabledChange,
+      isMuted,
+      setCaptionsEnabled,
+      setIsMuted,
       setAllPlaybackRate,
       setAllVolume,
       seekPlaybackPosition,
@@ -503,16 +530,6 @@ export function PlayerViewport({
                 Resuming at {formatDuration(properties.positionSeconds)}
               </span>
             ) : null}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white hover:bg-white/15 hover:text-white"
-              aria-label="Use original Echo UI"
-              title="Use original Echo UI"
-              onClick={onUseOriginal}
-            >
-              <ArrowLeft className="size-4 rotate-180" />
-            </Button>
           </div>
         </div>
 
@@ -687,7 +704,7 @@ export function PlayerViewport({
                       : 'text-white hover:bg-white/15 hover:text-white'
                   }
                   aria-label={captionsEnabled ? 'Captions on' : 'Captions off'}
-                  onClick={() => onCaptionsEnabledChange(!captionsEnabled)}
+                  onClick={() => setCaptionsEnabled(!captionsEnabled)}
                 >
                   CC
                 </Button>
@@ -700,7 +717,7 @@ export function PlayerViewport({
                     size="icon"
                     className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
                     aria-label={isMuted ? 'Unmute' : 'Mute'}
-                    onClick={() => setIsMuted((muted) => !muted)}
+                    onClick={() => setIsMuted(!isMuted)}
                   >
                     {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
                   </Button>
@@ -1109,6 +1126,7 @@ function VideoStream({
   const status = useVideoSource(media, source, initialPosition);
   useCaptionTracks(media, captionsEnabled);
   useMediaVolume(media, volume);
+  useMediaPlaybackRate(media, playbackRate);
   const ref = useCallback(
     (element: HTMLVideoElement | null) => {
       setMedia(element);

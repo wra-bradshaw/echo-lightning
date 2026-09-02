@@ -243,28 +243,24 @@ export function SectionPage() {
 
 export function ClassroomPage() {
   const { lessonId } = classroomRoute.useParams();
-  const { gateway, onUseOriginal } = classroomRoute.useRouteContext();
-  return <ClassroomExperience gateway={gateway} lessonId={lessonId} onUseOriginal={onUseOriginal} />;
+  const { gateway } = classroomRoute.useRouteContext();
+  return <ClassroomExperience gateway={gateway} lessonId={lessonId} />;
 }
 
 export function SectionClassroomPage() {
   const { sectionId, lessonId } = sectionClassroomRoute.useParams();
-  const { gateway, onUseOriginal } = sectionClassroomRoute.useRouteContext();
-  return (
-    <ClassroomExperience gateway={gateway} lessonId={lessonId} sectionId={sectionId} onUseOriginal={onUseOriginal} />
-  );
+  const { gateway } = sectionClassroomRoute.useRouteContext();
+  return <ClassroomExperience gateway={gateway} lessonId={lessonId} sectionId={sectionId} />;
 }
 
 function ClassroomExperience({
   gateway,
   lessonId,
   sectionId,
-  onUseOriginal,
 }: {
   gateway: EchoGateway;
   lessonId: string;
   sectionId?: string;
-  onUseOriginal: (url?: string) => void;
 }) {
   const syllabusQuery = useSectionSyllabus(gateway, sectionId ?? '', Boolean(sectionId));
   const lesson = syllabusQuery.data?.find((item) => item.id === lessonId);
@@ -276,9 +272,7 @@ function ClassroomExperience({
       {sectionId && !syllabusQuery.isLoading && !syllabusQuery.isError && !lesson ? (
         <ClassroomMessage label="This lecture is no longer available." error />
       ) : null}
-      {lesson ? (
-        <LessonPlayer gateway={gateway} lesson={lesson} sectionId={sectionId} onUseOriginal={onUseOriginal} />
-      ) : null}
+      {lesson ? <LessonPlayer gateway={gateway} lesson={lesson} sectionId={sectionId} /> : null}
     </ClassroomState>
   );
 }
@@ -296,12 +290,10 @@ function LessonPlayer({
   gateway,
   lesson,
   sectionId,
-  onUseOriginal,
 }: {
   gateway: EchoGateway;
   lesson: SyllabusItem;
   sectionId?: string;
-  onUseOriginal: (url?: string) => void;
 }) {
   const media = lesson.media.find((item) => item.available !== false && !item.audioOnly) ?? lesson.media[0];
   const playerQuery = usePlayerProperties(gateway, 'lessons', lesson.id, media?.id ?? '', Boolean(media));
@@ -317,8 +309,20 @@ function LessonPlayer({
     sectionId ? settings.pipSizeBySection[sectionId] : undefined,
   );
   const setPipSize = useLightningSettings((settings) => settings.setPipSize);
-  const captionsEnabled = useLightningSettings((settings) => settings.captionsEnabled);
-  const setCaptionsEnabled = useLightningSettings((settings) => settings.setCaptionsEnabled);
+  const savedVolume = useLightningSettings((settings) => (sectionId ? settings.volumeBySection[sectionId] : undefined));
+  const setVolumeForSection = useLightningSettings((settings) => settings.setVolumeForSection);
+  const savedPlaybackRate = useLightningSettings((settings) =>
+    sectionId ? (settings.playbackRateBySection[sectionId] ?? settings.playbackRate) : settings.playbackRate,
+  );
+  const setPlaybackRateForSection = useLightningSettings((settings) => settings.setPlaybackRateForSection);
+  const setPlaybackRateGlobal = useLightningSettings((settings) => settings.setPlaybackRate);
+  const savedCaptionsEnabled = useLightningSettings((settings) =>
+    sectionId ? (settings.captionsEnabledBySection[sectionId] ?? settings.captionsEnabled) : settings.captionsEnabled,
+  );
+  const setCaptionsEnabledForSection = useLightningSettings((settings) => settings.setCaptionsEnabledForSection);
+  const setCaptionsEnabledGlobal = useLightningSettings((settings) => settings.setCaptionsEnabled);
+  const savedIsMuted = useLightningSettings((settings) => (sectionId ? settings.mutedBySection[sectionId] : undefined));
+  const setMutedForSection = useLightningSettings((settings) => settings.setMutedForSection);
   return (
     <div className="h-full min-h-0 overflow-hidden">
       {playerQuery.isLoading ? <ClassroomMessage label="Preparing video sources…" /> : null}
@@ -331,15 +335,26 @@ function LessonPlayer({
           lesson={lesson}
           properties={playerQuery.data}
           sectionId={sectionId}
-          onUseOriginal={() => onUseOriginal()}
           savedSelectedIds={savedSelectedIds}
           onSelectedIdsChange={sectionId ? (ids) => setSelectedStreamIds(sectionId, ids) : undefined}
           savedPlayerState={savedPlayerState}
           onPlayerStateChange={sectionId ? (state) => setPlayerState(sectionId, state) : undefined}
           savedPipSize={savedPipSize}
           onPipSizeChange={sectionId ? (size) => setPipSize(sectionId, size) : undefined}
-          captionsEnabled={captionsEnabled}
-          onCaptionsEnabledChange={setCaptionsEnabled}
+          savedVolume={savedVolume}
+          onVolumeChange={sectionId ? (volume) => setVolumeForSection(sectionId, volume) : undefined}
+          savedPlaybackRate={savedPlaybackRate}
+          onPlaybackRateChange={
+            sectionId ? (rate) => setPlaybackRateForSection(sectionId, rate) : (rate) => setPlaybackRateGlobal(rate)
+          }
+          savedCaptionsEnabled={savedCaptionsEnabled}
+          onCaptionsEnabledChange={
+            sectionId
+              ? (enabled) => setCaptionsEnabledForSection(sectionId, enabled)
+              : (enabled) => setCaptionsEnabledGlobal(enabled)
+          }
+          savedIsMuted={savedIsMuted}
+          onIsMutedChange={sectionId ? (muted) => setMutedForSection(sectionId, muted) : undefined}
         />
       ) : null}
     </div>

@@ -21,6 +21,10 @@ export type PlayerState = {
 export type LightningSettings = {
   captionsEnabled: boolean;
   playbackRate: number;
+  volumeBySection: Record<string, number>;
+  playbackRateBySection: Record<string, number>;
+  captionsEnabledBySection: Record<string, boolean>;
+  mutedBySection: Record<string, boolean>;
   selectedStreamIds: Record<string, string[]>;
   playerStateBySection: Record<string, PlayerState>;
   pipSizeBySection: Record<string, PipSize>;
@@ -29,6 +33,10 @@ export type LightningSettings = {
 export type LightningSettingsState = LightningSettings & {
   setCaptionsEnabled: (enabled: boolean) => void;
   setPlaybackRate: (rate: number) => void;
+  setVolumeForSection: (sectionId: string, volume: number) => void;
+  setPlaybackRateForSection: (sectionId: string, rate: number) => void;
+  setCaptionsEnabledForSection: (sectionId: string, enabled: boolean) => void;
+  setMutedForSection: (sectionId: string, muted: boolean) => void;
   setSelectedStreamIds: (sectionId: string, ids: readonly string[]) => void;
   setPlayerState: (sectionId: string, state: PlayerState) => void;
   setPipSize: (sectionId: string, size: PipSize) => void;
@@ -55,7 +63,31 @@ export type SettingsStorageInput = SettingsStorage | BrowserStorageArea;
 export const SETTINGS_STORAGE_KEY = 'lightning.settings';
 
 function validPlaybackRate(value: unknown): value is number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0.25 && value <= 4;
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0.25 && value <= 10;
+}
+
+function validVolume(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 5;
+}
+
+function validVolumeBySection(value: unknown): value is Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([k, v]) => Boolean(k) && validVolume(v));
+}
+
+function validPlaybackRateBySection(value: unknown): value is Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([k, v]) => Boolean(k) && validPlaybackRate(v));
+}
+
+function validCaptionsEnabledBySection(value: unknown): value is Record<string, boolean> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([k, v]) => Boolean(k) && typeof v === 'boolean');
+}
+
+function validMutedBySection(value: unknown): value is Record<string, boolean> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.entries(value).every(([k, v]) => Boolean(k) && typeof v === 'boolean');
 }
 
 function validSelectedStreamIds(value: unknown): value is Record<string, string[]> {
@@ -127,6 +159,12 @@ function validSettings(value: unknown): value is LightningSettings {
     validPlaybackRate(state.playbackRate) &&
     validSelectedStreamIds(state.selectedStreamIds);
   if (!hasBase) return false;
+  if (state.volumeBySection !== undefined && !validVolumeBySection(state.volumeBySection)) return false;
+  if (state.playbackRateBySection !== undefined && !validPlaybackRateBySection(state.playbackRateBySection))
+    return false;
+  if (state.captionsEnabledBySection !== undefined && !validCaptionsEnabledBySection(state.captionsEnabledBySection))
+    return false;
+  if (state.mutedBySection !== undefined && !validMutedBySection(state.mutedBySection)) return false;
   if (state.playerStateBySection !== undefined && !validPlayerStateBySection(state.playerStateBySection)) return false;
   if (state.pipSizeBySection !== undefined && !validPipSizeBySection(state.pipSizeBySection)) return false;
   return true;
@@ -137,6 +175,10 @@ function settingsOnly(value: unknown): LightningSettings | undefined {
   return {
     captionsEnabled: value.captionsEnabled,
     playbackRate: value.playbackRate,
+    volumeBySection: (value.volumeBySection as Record<string, number>) ?? {},
+    playbackRateBySection: (value.playbackRateBySection as Record<string, number>) ?? {},
+    captionsEnabledBySection: (value.captionsEnabledBySection as Record<string, boolean>) ?? {},
+    mutedBySection: (value.mutedBySection as Record<string, boolean>) ?? {},
     selectedStreamIds: value.selectedStreamIds,
     playerStateBySection: (value.playerStateBySection as Record<string, PlayerState>) ?? {},
     pipSizeBySection: (value.pipSizeBySection as Record<string, PipSize>) ?? {},
@@ -163,6 +205,10 @@ export function createLightningSettingsStore(options: { storage?: SettingsStorag
   const defaults: LightningSettings = {
     captionsEnabled: true,
     playbackRate: 1,
+    volumeBySection: {},
+    playbackRateBySection: {},
+    captionsEnabledBySection: {},
+    mutedBySection: {},
     selectedStreamIds: {},
     playerStateBySection: {},
     pipSizeBySection: {},
@@ -183,7 +229,26 @@ export function createLightningSettingsStore(options: { storage?: SettingsStorag
     (set) => ({
       ...defaults,
       setCaptionsEnabled: (captionsEnabled) => set({ captionsEnabled }),
-      setPlaybackRate: (playbackRate) => set({ playbackRate }),
+      setPlaybackRate: (playbackRate) => {
+        if (!validPlaybackRate(playbackRate)) return;
+        set({ playbackRate });
+      },
+      setVolumeForSection: (sectionId, volume) => {
+        if (!sectionId || !validVolume(volume)) return;
+        set((state) => ({ volumeBySection: { ...state.volumeBySection, [sectionId]: volume } }));
+      },
+      setPlaybackRateForSection: (sectionId, rate) => {
+        if (!sectionId || !validPlaybackRate(rate)) return;
+        set((state) => ({ playbackRateBySection: { ...state.playbackRateBySection, [sectionId]: rate } }));
+      },
+      setCaptionsEnabledForSection: (sectionId, enabled) => {
+        if (!sectionId || typeof enabled !== 'boolean') return;
+        set((state) => ({ captionsEnabledBySection: { ...state.captionsEnabledBySection, [sectionId]: enabled } }));
+      },
+      setMutedForSection: (sectionId, muted) => {
+        if (!sectionId || typeof muted !== 'boolean') return;
+        set((state) => ({ mutedBySection: { ...state.mutedBySection, [sectionId]: muted } }));
+      },
       setSelectedStreamIds: (sectionId, ids) => {
         if (!sectionId) return;
         const uniqueIds = ids.filter((id, index) => Boolean(id) && ids.indexOf(id) === index);
@@ -202,9 +267,23 @@ export function createLightningSettingsStore(options: { storage?: SettingsStorag
       name: SETTINGS_STORAGE_KEY,
       storage: createJSONStorage<LightningSettings>(() => storage),
       skipHydration: true,
-      partialize: ({ captionsEnabled, playbackRate, selectedStreamIds, playerStateBySection, pipSizeBySection }) => ({
+      partialize: ({
         captionsEnabled,
         playbackRate,
+        volumeBySection,
+        playbackRateBySection,
+        captionsEnabledBySection,
+        mutedBySection,
+        selectedStreamIds,
+        playerStateBySection,
+        pipSizeBySection,
+      }) => ({
+        captionsEnabled,
+        playbackRate,
+        volumeBySection,
+        playbackRateBySection,
+        captionsEnabledBySection,
+        mutedBySection,
         selectedStreamIds,
         playerStateBySection,
         pipSizeBySection,
