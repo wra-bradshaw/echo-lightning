@@ -1,4 +1,15 @@
-import { ArrowLeft, CaretDown, Check, Pause, Play, SpeakerHigh, SpeakerSlash, Trash, X } from '@phosphor-icons/react';
+import {
+  ArrowLeft,
+  CaretDown,
+  Check,
+  Gauge,
+  Pause,
+  Play,
+  SpeakerHigh,
+  SpeakerSlash,
+  Trash,
+  X,
+} from '@phosphor-icons/react';
 import { MotionConfig, motion, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
 /* eslint-disable react-hooks/set-state-in-effect */
@@ -588,48 +599,6 @@ export function PlayerViewport({
               >
                 {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" weight="fill" />}
               </Button>
-              <div
-                className="group/volume pointer-events-auto flex shrink-0 items-center"
-                data-testid="player-volume-control"
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
-                  aria-label={isMuted ? 'Unmute' : 'Mute'}
-                  onClick={() => setIsMuted((muted) => !muted)}
-                >
-                  {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
-                </Button>
-                <div
-                  className="grid w-36 grid-cols-[1fr] overflow-hidden opacity-0 transition-opacity delay-500 duration-200 group-hover/volume:opacity-100 group-hover/volume:delay-0"
-                  data-testid="player-volume-slider-reveal"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Slider
-                      aria-label="Volume"
-                      data-testid="player-volume-slider"
-                      value={[playerVolumeToSliderValue(volume)]}
-                      min={0}
-                      max={playerVolumeToSliderValue(1)}
-                      step={PLAYER_VOLUME_SLIDER_STEP}
-                      onValueChange={(value) => {
-                        const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                        if (Number.isFinite(next)) {
-                          setAllVolume(sliderValueToPlayerVolume(next));
-                          setIsMuted(false);
-                        }
-                      }}
-                    />
-                    <span
-                      data-testid="player-volume-value"
-                      className="w-12 shrink-0 text-right text-xs text-white/80 tabular-nums"
-                    >
-                      {Math.round(volume * 100)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
               <span className="text-xs text-white/80 tabular-nums">
                 {formatDuration(currentTime)} / {formatDuration(duration)}
               </span>
@@ -704,34 +673,74 @@ export function PlayerViewport({
                   CC
                 </Button>
                 <div
-                  className="group/speed pointer-events-auto flex shrink-0 items-center"
+                  className="pointer-events-auto flex shrink-0 items-center gap-2"
+                  data-testid="player-volume-control"
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                    aria-label={isMuted ? 'Unmute' : 'Mute'}
+                    onClick={() => setIsMuted((muted) => !muted)}
+                  >
+                    {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
+                  </Button>
+                  <div className="grid w-32 grid-cols-[1fr] overflow-hidden" data-testid="player-volume-slider-reveal">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Slider
+                        aria-label="Volume"
+                        data-testid="player-volume-slider"
+                        value={[
+                          Math.min(100, (playerVolumeToSliderValue(volume) / playerVolumeToSliderValue(1)) * 100),
+                        ]}
+                        min={0}
+                        max={100}
+                        step={PLAYER_VOLUME_SLIDER_STEP}
+                        onValueChange={(value) => {
+                          const next = Array.isArray(value) ? Number(value[0]) : Number(value);
+                          if (Number.isFinite(next)) {
+                            const scaled = (next / 100) * playerVolumeToSliderValue(1);
+                            setAllVolume(sliderValueToPlayerVolume(scaled));
+                            setIsMuted(false);
+                          }
+                        }}
+                      />
+                      <span
+                        data-testid="player-volume-value"
+                        className="w-10 shrink-0 text-right text-xs text-white/80 tabular-nums"
+                      >
+                        {Math.round(volume * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className="pointer-events-auto flex shrink-0 items-center gap-2"
                   data-testid="player-speed-control"
                 >
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
                     aria-label={`Playback speed ${playbackRate}x`}
                   >
-                    {Number.isInteger(playbackRate)
-                      ? `${playbackRate}x`
-                      : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`}
+                    <Gauge className="size-5" />
                   </Button>
-                  <div
-                    className="grid w-36 grid-cols-[1fr] overflow-hidden opacity-0 transition-opacity delay-500 duration-200 group-hover/speed:opacity-100 group-hover/speed:delay-0"
-                    data-testid="player-speed-slider-reveal"
-                  >
+                  <div className="grid w-32 grid-cols-[1fr] overflow-hidden" data-testid="player-speed-slider-reveal">
                     <div className="flex min-w-0 items-center gap-2">
                       <Slider
                         aria-label="Playback speed"
                         data-testid="player-speed-slider"
-                        value={[Math.min(speedToSlider(1), speedToSlider(playbackRate))]}
+                        value={[Math.min(100, (speedToSlider(playbackRate) / speedToSlider(1)) * 100)]}
                         min={0}
-                        max={speedToSlider(1)}
+                        max={100}
                         step={1}
                         onValueChange={(value) => {
                           const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                          if (Number.isFinite(next)) setAllPlaybackRate(sliderToSpeed(next));
+                          if (Number.isFinite(next)) {
+                            const scaled = (next / 100) * speedToSlider(1);
+                            setAllPlaybackRate(sliderToSpeed(scaled));
+                          }
                         }}
                       />
                       <span
