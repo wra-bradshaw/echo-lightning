@@ -3,6 +3,32 @@ import { clearExtensionLocalStorage, setReplacementMode, setStockMode, tabIdForU
 import { SETTINGS_STORAGE_KEY } from '../../src/features/settings';
 
 test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => {
+  await page.route('**/user/enrollments', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: [
+          {
+            userSections: [
+              {
+                sectionId: 'section-hotkeys',
+                sectionName: 'Test Section',
+                courseId: 'course-hotkeys',
+                courseCode: 'TEST101',
+                courseName: 'Test Course',
+                lessonCount: 1,
+                termId: 'term-hotkeys',
+              },
+            ],
+            termsById: {
+              'term-hotkeys': { id: 'term-hotkeys', name: '2026_SM1', startDate: '2026-01-01', isActiveOrFuture: true },
+            },
+          },
+        ],
+      }),
+    }),
+  );
   await page.route('**/section/section-hotkeys/syllabus', (route) =>
     route.fulfill({
       contentType: 'application/json',
@@ -65,7 +91,7 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await setReplacementMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.evaluate(() => {
-    history.pushState(null, '', '/section/section-hotkeys/lesson/lesson-hotkeys');
+    history.pushState(null, '', '/lesson/lesson-hotkeys/classroom');
     window.dispatchEvent(new PopStateEvent('popstate'));
   });
 
