@@ -10,7 +10,7 @@ import {
   Trash,
   X,
 } from '@phosphor-icons/react';
-import { MotionConfig, motion, type PanInfo } from 'motion/react';
+import { domMax, LazyMotion, MotionConfig, m, type PanInfo } from 'motion/react';
 import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { usePipDrag } from './use-pip-drag';
@@ -485,8 +485,9 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
   );
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div
+    <LazyMotion features={domMax} strict>
+      <MotionConfig reducedMotion="user">
+        <div
         ref={viewportRef}
         className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-white"
         data-testid="classroom-player"
@@ -772,7 +773,8 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
           </div>
         </div>
       </div>
-    </MotionConfig>
+      </MotionConfig>
+    </LazyMotion>
   );
 }
 
@@ -1038,7 +1040,7 @@ function DraggablePip({
   };
 
   return (
-    <motion.div
+    <m.div
       layout={!isDragging}
       className="absolute z-[70] overflow-hidden rounded-xl border-2 border-white/70 bg-black shadow-2xl focus-within:ring-2 focus-within:ring-white"
       style={style}
@@ -1063,7 +1065,7 @@ function DraggablePip({
       >
         <div className={cn('h-3 w-3 rounded-sm border-white/80 opacity-70', handleConfig.border)} />
       </div>
-    </motion.div>
+    </m.div>
   );
 }
 
