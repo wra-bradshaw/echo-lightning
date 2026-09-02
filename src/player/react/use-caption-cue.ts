@@ -7,6 +7,9 @@ export function useCaptionCue(media: HTMLMediaElement | null, enabled: boolean, 
   useLayoutEffect(() => {
     if (!media) return;
     for (const track of Array.from(media.textTracks)) track.mode = 'hidden';
+    return () => {
+      for (const track of Array.from(media.textTracks)) track.mode = 'disabled';
+    };
   }, [enabled, media]);
 
   useLayoutEffect(() => {
@@ -14,21 +17,22 @@ export function useCaptionCue(media: HTMLMediaElement | null, enabled: boolean, 
     const tracks = Array.from(media.textTracks);
     for (const track of tracks) track.mode = 'hidden';
     const bump = () => setTick((value) => value + 1);
-    for (const track of tracks) track.addEventListener('cuechange', bump);
+    const controller = new AbortController();
+    const { signal } = controller;
+    for (const track of tracks) track.addEventListener('cuechange', bump, { signal });
     const onAddTrack = () => {
       for (const track of Array.from(media.textTracks)) {
         track.mode = 'hidden';
-        track.addEventListener('cuechange', bump);
+        track.addEventListener('cuechange', bump, { signal });
       }
       bump();
     };
-    media.textTracks.addEventListener('addtrack' as never, onAddTrack as never);
-    const interval = window.setInterval(bump, 300);
+    media.textTracks.addEventListener('addtrack' as never, onAddTrack as never, { signal } as never);
+    const interval = setInterval(bump, 300);
     bump();
     return () => {
-      window.clearInterval(interval);
-      for (const track of Array.from(media.textTracks)) track.removeEventListener('cuechange', bump);
-      media.textTracks.removeEventListener('addtrack' as never, onAddTrack as never);
+      controller.abort();
+      clearInterval(interval);
     };
   }, [enabled, media]);
 
