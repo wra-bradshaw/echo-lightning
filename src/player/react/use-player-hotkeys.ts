@@ -1,5 +1,5 @@
 import { useHotkeys, type RegisterableHotkey } from '@tanstack/react-hotkeys';
-import { useCallback, useMemo, type RefObject } from 'react';
+import { useCallback, useMemo } from 'react';
 import { getPlayerHotkeyAction, type PlayerHotkeyAction, type PlayerHotkeyState } from '../core/player-hotkeys';
 
 const PLAYER_HOTKEYS = [
@@ -35,14 +35,13 @@ const PLAYER_HOTKEYS = [
 
 export type UsePlayerHotkeysOptions = PlayerHotkeyState & {
   onAction: (action: PlayerHotkeyAction) => void;
-  target: RefObject<HTMLElement | null>;
 };
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
   return target instanceof Element && Boolean(target.closest('button, input, select, textarea, [role="slider"]'));
 }
 
-export function usePlayerHotkeys({ onAction, target, ...state }: UsePlayerHotkeysOptions): void {
+export function usePlayerHotkeys({ onAction, ...state }: UsePlayerHotkeysOptions): void {
   const handleHotkey = useCallback(
     (event: KeyboardEvent) => {
       if (isInteractiveTarget(event.target)) return;
@@ -58,6 +57,5 @@ export function usePlayerHotkeys({ onAction, target, ...state }: UsePlayerHotkey
     preventDefault: true,
     requireReset: true,
     stopPropagation: true,
-    target,
   });
 }

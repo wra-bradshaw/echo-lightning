@@ -431,7 +431,6 @@ export function PlayerViewport({
     isPlaying,
     onAction: handlePlayerHotkey,
     playbackRate,
-    target: playerRef,
     volume,
   });
 

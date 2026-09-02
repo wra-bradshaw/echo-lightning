@@ -3,9 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { usePlayerHotkeys } from './use-player-hotkeys';
 
 describe('usePlayerHotkeys', () => {
-  it('dispatches a YouTube shortcut from the scoped player target', () => {
-    const target = document.createElement('div');
-    document.body.append(target);
+  it('dispatches a YouTube shortcut globally without requiring player focus', () => {
     const onAction = vi.fn();
     const { unmount } = renderHook(() =>
       usePlayerHotkeys({
@@ -13,22 +11,17 @@ describe('usePlayerHotkeys', () => {
         isPlaying: true,
         onAction,
         playbackRate: 1,
-        target: { current: target },
         volume: 1,
       }),
     );
 
-    target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'KeyJ', key: 'j' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'KeyJ', key: 'j' }));
 
     expect(onAction).toHaveBeenCalledWith({ type: 'seek', seconds: -10 });
     unmount();
   });
 
-  it('leaves focused player controls to their native keyboard behavior', () => {
-    const target = document.createElement('div');
-    const button = document.createElement('button');
-    target.append(button);
-    document.body.append(target);
+  it('dispatches even when the event originates from an element outside the player', () => {
     const onAction = vi.fn();
     const { unmount } = renderHook(() =>
       usePlayerHotkeys({
@@ -36,7 +29,26 @@ describe('usePlayerHotkeys', () => {
         isPlaying: true,
         onAction,
         playbackRate: 1,
-        target: { current: target },
+        volume: 1,
+      }),
+    );
+
+    document.body.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Space', key: ' ' }));
+
+    expect(onAction).toHaveBeenCalledWith({ type: 'toggle-playback' });
+    unmount();
+  });
+
+  it('leaves focused player controls to their native keyboard behavior', () => {
+    const button = document.createElement('button');
+    document.body.append(button);
+    const onAction = vi.fn();
+    const { unmount } = renderHook(() =>
+      usePlayerHotkeys({
+        duration: 600,
+        isPlaying: true,
+        onAction,
+        playbackRate: 1,
         volume: 1,
       }),
     );
@@ -45,5 +57,6 @@ describe('usePlayerHotkeys', () => {
 
     expect(onAction).not.toHaveBeenCalled();
     unmount();
+    button.remove();
   });
 });
