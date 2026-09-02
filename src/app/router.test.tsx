@@ -46,6 +46,7 @@ describe('Lightning router', () => {
     ['/sections/section%201/classrooms/lesson%201', 'Lesson lesson 1'],
     ['/classroom/lesson%201', 'Lesson lesson 1'],
     ['/lesson/lesson%201', 'Lesson lesson 1'],
+    ['/lesson/lesson%201/classroom', 'Lesson lesson 1'],
   ])('renders the supported Echo alias %s', async (path, heading) => {
     const { history, container } = renderRouter(path);
     await waitFor(() => expect(within(container).getByRole('heading', { name: heading })).toBeVisible());

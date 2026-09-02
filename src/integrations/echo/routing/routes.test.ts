@@ -26,7 +26,7 @@ describe('parseEchoRoute', () => {
       sectionId: 'section 1',
     });
     expect(canonicalEchoUrl('https://echo360.net.au/lesson/lesson%201?tab=notes')).toBe(
-      'https://echo360.net.au/lesson/lesson%201',
+      'https://echo360.net.au/lesson/lesson%201/classroom',
     );
   });
   it('provides TanStack input and output rewrites', () => {

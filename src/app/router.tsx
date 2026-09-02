@@ -53,7 +53,7 @@ export const sectionRoute = createRoute({
 });
 export const classroomRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/lesson/$lessonId',
+  path: '/lesson/$lessonId/classroom',
   component: ClassroomPage,
 });
 export const sectionClassroomRoute = createRoute({

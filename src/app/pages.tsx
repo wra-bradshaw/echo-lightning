@@ -3,7 +3,13 @@ import { Link } from '@tanstack/react-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { EchoGateway, SyllabusItem } from '../domain';
 import { useCourses } from '../features/courses';
-import { getVideoMedia, getWatchedPercentage, useSectionSyllabus, useSectionVideoProgress } from '../features/sections';
+import {
+  getVideoMedia,
+  getWatchedPercentage,
+  useLesson,
+  useSectionSyllabus,
+  useSectionVideoProgress,
+} from '../features/sections';
 import { useLightningSettings } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
@@ -244,7 +250,33 @@ export function SectionPage() {
 export function ClassroomPage() {
   const { lessonId } = classroomRoute.useParams();
   const { gateway } = classroomRoute.useRouteContext();
-  return <ClassroomExperience gateway={gateway} lessonId={lessonId} />;
+  const { lesson, sectionId, isLoading, isError } = useLesson(gateway, lessonId);
+  if (isLoading) {
+    return (
+      <ClassroomState title={`Lesson ${lessonId}`}>
+        <ClassroomMessage label="Preparing lecture…" />
+      </ClassroomState>
+    );
+  }
+  if (isError) {
+    return (
+      <ClassroomState title={`Lesson ${lessonId}`}>
+        <ClassroomMessage label="This lecture could not be loaded." error />
+      </ClassroomState>
+    );
+  }
+  if (!lesson) {
+    return (
+      <ClassroomState title={`Lesson ${lessonId}`}>
+        <ClassroomMessage label="This lecture is no longer available." error />
+      </ClassroomState>
+    );
+  }
+  return (
+    <ClassroomState title={lesson.title || `Lesson ${lessonId}`}>
+      <LessonPlayer gateway={gateway} lesson={lesson} sectionId={sectionId} />
+    </ClassroomState>
+  );
 }
 
 export function SectionClassroomPage() {
