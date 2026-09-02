@@ -254,7 +254,6 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
         .evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).muted)),
     )
     .toEqual([false, true, true]);
-  await expect(page.getByText('Resuming at 2:05')).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'Toggle stream selector' })).toHaveCount(0);
   const streamsButton = page.getByRole('button', { name: /Streams 3\/3/ });

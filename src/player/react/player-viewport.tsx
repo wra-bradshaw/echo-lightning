@@ -523,14 +523,6 @@ export function PlayerViewport({
           data-visible={controls.visible}
         >
           <div className="pointer-events-auto min-w-0">{backLink}</div>
-          <div className="pointer-events-auto flex shrink-0 items-center gap-2">
-            <span className="hidden max-w-64 truncate text-right text-sm text-white/80 sm:inline">{lesson.title}</span>
-            {properties.positionSeconds > 0 ? (
-              <span className="hidden text-xs text-white/60 sm:inline">
-                Resuming at {formatDuration(properties.positionSeconds)}
-              </span>
-            ) : null}
-          </div>
         </div>
 
         <div className="relative z-0 min-h-0 flex-1 overflow-hidden bg-black">
