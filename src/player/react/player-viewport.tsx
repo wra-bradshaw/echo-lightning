@@ -184,10 +184,10 @@ export function PlayerViewport({
     duration,
   });
   const gridLayout = calculateGridLayout({
-    width: viewportSize.width - 32,
-    height: viewportSize.height - 112,
+    width: viewportSize.width,
+    height: viewportSize.height,
     aspectRatios: activeSources.map((source) => aspectRatios[source.id]),
-    gap: 12,
+    gap: 0,
   });
   const [pipSizeOverride, setPipSizeOverride] = useState<PipSize | null>(() => savedPipSize ?? null);
   useLayoutEffect(() => {
@@ -503,15 +503,15 @@ export function PlayerViewport({
           </div>
         </div>
 
-        <div className="relative z-0 min-h-0 flex-1 bg-black">
+        <div className="relative z-0 min-h-0 flex-1 overflow-hidden bg-black">
           {state.mode === 'grid' ? (
             <div
-              className="absolute inset-4 grid min-h-0 min-w-0"
+              className="absolute inset-0 grid min-h-0 min-w-0 overflow-hidden"
               data-testid="camera-grid"
               style={{
                 gridTemplateColumns: `repeat(${Math.max(1, gridLayout.columns)}, minmax(0, 1fr))`,
                 gridTemplateRows: `repeat(${Math.max(1, gridLayout.rows)}, minmax(0, 1fr))`,
-                gap: 12,
+                gap: 0,
               }}
             >
               {activeSources.map((source) => (
@@ -891,7 +891,7 @@ function FocusLayout({
   if (!mainSource) return null;
   return (
     <>
-      <div className="absolute inset-0 min-h-0 min-w-0 p-3 sm:p-5" data-testid="main-stream">
+      <div className="absolute inset-0 min-h-0 min-w-0 overflow-hidden" data-testid="main-stream">
         <VideoStream
           source={mainSource}
           autoPlay
@@ -1093,8 +1093,8 @@ function VideoStream({
     <div
       data-testid="camera-tile"
       className={cn(
-        'group relative h-full min-h-0 w-full overflow-hidden rounded-xl bg-black',
-        compact ? 'rounded-lg' : 'border border-white/15',
+        'group relative h-full min-h-0 w-full overflow-hidden bg-black',
+        compact ? 'rounded-lg' : 'border-0',
       )}
     >
       <video

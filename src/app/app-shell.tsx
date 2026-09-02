@@ -12,7 +12,7 @@ export function AppShell({ children, onUseOriginal }: { children: ReactNode; onU
   if (isClassroom) {
     return (
       <div className="bg-background text-foreground h-dvh min-h-0 overflow-hidden">
-        <main className="h-full min-h-0">{children}</main>
+        <main className="h-full min-h-0 overflow-hidden">{children}</main>
       </div>
     );
   }

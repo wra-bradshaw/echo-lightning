@@ -285,7 +285,7 @@ function ClassroomExperience({
 
 function ClassroomState({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="relative h-full min-h-0">
+    <div className="relative h-full min-h-0 overflow-hidden">
       <h1 className="sr-only">{title}</h1>
       {children}
     </div>
@@ -320,7 +320,7 @@ function LessonPlayer({
   const captionsEnabled = useLightningSettings((settings) => settings.captionsEnabled);
   const setCaptionsEnabled = useLightningSettings((settings) => settings.setCaptionsEnabled);
   return (
-    <div className="h-full min-h-0">
+    <div className="h-full min-h-0 overflow-hidden">
       {playerQuery.isLoading ? <ClassroomMessage label="Preparing video sources…" /> : null}
       {playerQuery.isError ? (
         <ClassroomMessage label="Video sources could not be loaded for this lecture." error />
