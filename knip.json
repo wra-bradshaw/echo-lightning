@@ -10,5 +10,5 @@
   "project": ["src/**/*.{ts,tsx,css}", "tools/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
   "ignoreBinaries": ["rbw"],
   "ignoreDependencies": ["@wxt-dev/module-react"],
-  "exclude": ["files"]
+  "exclude": ["files", "exports", "types", "nsExports", "duplicates", "enumMembers", "namespaceMembers"]
 }
