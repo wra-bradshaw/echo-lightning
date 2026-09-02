@@ -253,7 +253,8 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
   const getManagedVideoElements = useCallback(() => {
     const currentElements = playerRef.current ? Array.from(playerRef.current.querySelectorAll('video')) : [];
     const registeredElements = Object.values(videoMap.current);
-    return [...currentElements, ...registeredElements.filter((element) => !currentElements.includes(element))];
+    const currentSet = new Set(currentElements);
+    return [...currentElements, ...registeredElements.filter((element) => !currentSet.has(element))];
   }, []);
 
   const getCurrentLeaderVideo = useCallback(() => {
@@ -790,6 +791,7 @@ function StreamManager({
   onSetAudio: (id: string) => void;
   onClose: () => void;
 }) {
+  const selectedSet = new Set(selectedIds);
   return (
     <div
       data-testid="stream-manager"
@@ -811,7 +813,7 @@ function StreamManager({
       </div>
       <div className="space-y-1">
         {sources.map((source) => {
-          const selected = selectedIds.includes(source.id);
+          const selected = selectedSet.has(source.id);
           const audible = selected && audioId === source.id;
           return (
             <div key={source.id} className="flex items-center gap-1 rounded-lg p-1 hover:bg-white/10">

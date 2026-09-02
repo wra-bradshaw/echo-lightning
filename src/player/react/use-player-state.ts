@@ -10,9 +10,12 @@ function restorePlayerState(
 ): PlayerState {
   if (savedState && savedState.selectedIds.length) {
     const available = new Set(availableIds);
-    const filteredSelected = savedState.selectedIds.filter(
-      (id, index) => available.has(id) && savedState.selectedIds.indexOf(id) === index,
-    );
+    const seen = new Set<string>();
+    const filteredSelected = savedState.selectedIds.filter((id) => {
+      if (!available.has(id) || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
     const selectedIds = filteredSelected.length ? filteredSelected : restoreSelectedStreamIds(availableIds, savedIds);
     const mainId =
       available.has(savedState.mainId) && selectedIds.includes(savedState.mainId)
@@ -20,9 +23,10 @@ function restorePlayerState(
         : (selectedIds[0] ?? '');
     const audioId =
       available.has(savedState.audioId) && selectedIds.includes(savedState.audioId) ? savedState.audioId : mainId;
+    const selectedSet = new Set(selectedIds);
     const pipPositions: PlayerState['pipPositions'] = {};
     for (const [id, pos] of Object.entries(savedState.pipPositions)) {
-      if (available.has(id) && selectedIds.includes(id) && id !== mainId) pipPositions[id] = pos;
+      if (available.has(id) && selectedSet.has(id) && id !== mainId) pipPositions[id] = pos;
     }
     const mode: PlayerState['mode'] =
       savedState.mode === 'grid' || savedState.mode === 'focus' ? savedState.mode : 'grid';
