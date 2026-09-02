@@ -38,8 +38,9 @@ export function calculateGridLayout({ width, height, aspectRatios, gap = 12 }: G
     const tileHeight = (height - gap * (rows - 1)) / rows;
     if (tileWidth <= 0 || tileHeight <= 0) continue;
     const score = ratios.reduce((total, ratio) => total + containedArea(tileWidth, tileHeight, ratio), 0);
-    const candidate = { rows, columns, tileWidth, tileHeight, score };
-    if (!best || score > best.score || (score === best.score && rows < best.rows)) best = candidate;
+    const adjustedScore = columns > rows ? score * 1.2 : score;
+    const candidate = { rows, columns, tileWidth, tileHeight, score: adjustedScore };
+    if (!best || adjustedScore > best.score || (adjustedScore === best.score && rows < best.rows)) best = candidate;
   }
 
   return best ?? { rows: 0, columns: 0, tileWidth: 0, tileHeight: 0, score: 0 };
