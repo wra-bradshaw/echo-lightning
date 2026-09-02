@@ -32,6 +32,9 @@ importers:
       hls.js:
         specifier: ^1.7.1
         version: 1.7.1
+      ky:
+        specifier: ^1.14.3
+        version: 1.14.3
       motion:
         specifier: ^13.1.1
         version: 13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
