@@ -38,13 +38,13 @@ export class EchoTransport {
       throwHttpErrors: false,
       hooks: {
         beforeRequest: [
-          (request) => {
+          ({ request }) => {
             if (new URL(request.url).origin !== this.origin)
               throw new TypeError(`Echo API requests must stay same-origin on ${this.origin}.`);
           },
         ],
         afterResponse: [
-          async (_request, _options, response) => {
+          async ({ response }) => {
             const redirectedToLogin =
               response.redirected && response.url && new URL(response.url).hostname === 'login.echo360.net.au';
             if (response.status === 401 || response.status === 403 || redirectedToLogin) {
