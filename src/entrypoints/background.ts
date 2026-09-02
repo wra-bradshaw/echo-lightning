@@ -71,6 +71,8 @@ export default defineBackground(() => {
       setBadgeBackgroundColor: (details) => browser.action.setBadgeBackgroundColor(details),
       setTitle: (details) => browser.action.setTitle(details),
     },
+    globalEnabled: getGlobalEnabled,
+    storageLocal,
   });
 
   async function setGlobalBadge(enabled: boolean) {
@@ -154,11 +156,42 @@ export default defineBackground(() => {
       })(),
   );
 
+  function parseGlobalEnabledChange(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      if (value === 'true') return true;
+      if (value === 'false') return false;
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (typeof parsed === 'boolean') return parsed;
+        if (parsed && typeof parsed === 'object') {
+          const obj = parsed as Record<string, unknown>;
+          if (typeof obj.globalEnabled === 'boolean') return obj.globalEnabled;
+          if (obj.state && typeof obj.state === 'object') {
+            const state = obj.state as Record<string, unknown>;
+            if (typeof state.globalEnabled === 'boolean') return state.globalEnabled;
+          }
+        }
+      } catch {
+        void 0;
+      }
+    }
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>;
+      if (typeof obj.globalEnabled === 'boolean') return obj.globalEnabled;
+      if (obj.state && typeof obj.state === 'object') {
+        const state = obj.state as Record<string, unknown>;
+        if (typeof state.globalEnabled === 'boolean') return state.globalEnabled;
+      }
+    }
+    return value === true;
+  }
+
   browser.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     const change = (changes as Record<string, { newValue?: unknown }>)[GLOBAL_ENABLED_KEY];
     if (!change) return;
-    const next = change.newValue === true;
+    const next = parseGlobalEnabledChange(change.newValue);
     void (async () => {
       await setGlobalBadge(next);
       await syncAllTabs(next);

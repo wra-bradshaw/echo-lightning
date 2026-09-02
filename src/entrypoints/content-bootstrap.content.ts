@@ -17,7 +17,34 @@ export default defineContentScript({
     let globallyDisabled = false;
     try {
       const stored = await browser.storage.local.get('lightning.globalEnabled');
-      globallyDisabled = stored['lightning.globalEnabled'] === false;
+      const raw = stored['lightning.globalEnabled'];
+      if (raw === false) globallyDisabled = true;
+      else if (typeof raw === 'string') {
+        if (raw === 'false') globallyDisabled = true;
+        else {
+          try {
+            const parsed = JSON.parse(raw) as unknown;
+            if (parsed === false) globallyDisabled = true;
+            else if (parsed && typeof parsed === 'object') {
+              const obj = parsed as Record<string, unknown>;
+              if (obj.globalEnabled === false) globallyDisabled = true;
+              else if (obj.state && typeof obj.state === 'object') {
+                const state = obj.state as Record<string, unknown>;
+                if (state.globalEnabled === false) globallyDisabled = true;
+              }
+            }
+          } catch {
+            void 0;
+          }
+        }
+      } else if (raw && typeof raw === 'object') {
+        const obj = raw as Record<string, unknown>;
+        if (obj.globalEnabled === false) globallyDisabled = true;
+        else if (obj.state && typeof obj.state === 'object') {
+          const state = obj.state as Record<string, unknown>;
+          if (state.globalEnabled === false) globallyDisabled = true;
+        }
+      }
     } catch {
       void 0;
     }
