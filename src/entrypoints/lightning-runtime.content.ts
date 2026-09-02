@@ -46,8 +46,7 @@ export default defineContentScript({
     shadow.append(app);
     (document.documentElement || document.body).append(host);
     syncOuterTheme(isDark);
-    let lightning: ReturnType<typeof createLightningRuntime> | undefined;
-    lightning = createLightningRuntime({
+    const lightning = createLightningRuntime({
       window,
       sendMessage: (message) => runtimeApi.sendMessage(message),
       fetcher: createPageFetch(window),

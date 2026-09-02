@@ -173,9 +173,9 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await player.press('c');
   await expect(page.getByRole('button', { name: 'Captions off' })).toBeVisible();
   await player.press('Shift+Period');
-  await expect(page.getByLabel('Playback speed')).toHaveValue('1.25');
+  await expect(page.getByTestId('player-speed-value')).toHaveText('1.25x');
   await player.press('Shift+Comma');
-  await expect(page.getByLabel('Playback speed')).toHaveValue('1');
+  await expect(page.getByTestId('player-speed-value')).toHaveText('1x');
 
   await player.press('f');
   await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
