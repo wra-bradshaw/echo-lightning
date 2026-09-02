@@ -35,6 +35,7 @@ import {
 import type { PlayerHotkeyAction } from '../core/player-hotkeys';
 import type { PlayerAction } from '../core/player-state';
 import { synchronizeSecondaryVideo } from '../core/media-sync';
+import { useCaptionCue } from './use-caption-cue';
 import { useCaptionTracks } from './use-caption-tracks';
 import { useControlVisibility } from './use-control-visibility';
 import { useKeepPlaying } from './use-keep-playing';
@@ -142,6 +143,7 @@ export function PlayerViewport({
   const mainSource = sources.find((source) => source.id === state.mainId) ?? activeSources[0];
   const leader = videoElements[state.mode === 'focus' ? state.mainId : state.audioId] ?? null;
   const currentTime = useMediaClock(leader);
+  const captionText = useCaptionCue(leader, captionsEnabled, currentTime);
   const streamInitialPosition = playbackPosition > 0 ? playbackPosition : currentTime;
   const dispatchPlayerAction = useCallback(
     (action: PlayerAction) => {
@@ -331,7 +333,18 @@ export function PlayerViewport({
       const viewport = viewportElement?.getBoundingClientRect();
       if (!viewport) return;
       const position = pipPositions[id] ?? { corner: 'bottom-right' as const, index: 0 };
-      const initial = getPipCoordinates(position, { width: viewport.width, height: viewport.height }, pipSize, 16, 12);
+      const base = getPipCoordinates(position, { width: viewport.width, height: viewport.height }, pipSize, 16, 12);
+      const initial = controls.visible
+        ? clampPipPosition(
+            {
+              x: base.x,
+              y: base.y + (position.corner.startsWith('top') ? 64 : -96),
+            },
+            { width: viewport.width, height: viewport.height },
+            pipSize,
+            16,
+          )
+        : base;
       const nextPoint = {
         x: initial.x + info.offset.x,
         y: initial.y + info.offset.y,
@@ -340,7 +353,7 @@ export function PlayerViewport({
       const snapped = placePipInNearestCorner(clamped, { width: viewport.width, height: viewport.height }, pipSize, 16);
       dispatch({ type: 'set-pip-position', id, position: snapped });
     },
-    [dispatch, pipPositions, pipSize, viewportElement],
+    [controls.visible, dispatch, pipPositions, pipSize, viewportElement],
   );
 
   const toggleFullscreen = useCallback(() => {
@@ -575,6 +588,8 @@ export function PlayerViewport({
             />
           )}
         </div>
+
+        <CaptionOverlay text={captionText} enabled={captionsEnabled} controlsVisible={controls.visible} />
 
         <div
           className={cn(
@@ -909,7 +924,18 @@ function FocusLayout({
       </div>
       {pipSources.map((source) => {
         const position = pipPositions[source.id] ?? { corner: 'bottom-right', index: 0 };
-        const coordinates = getPipCoordinates(position, viewportSize, pipSize, 16, 12);
+        const baseCoordinates = getPipCoordinates(position, viewportSize, pipSize, 16, 12);
+        const coordinates = controlsVisible
+          ? clampPipPosition(
+              {
+                x: baseCoordinates.x,
+                y: baseCoordinates.y + (position.corner.startsWith('top') ? 64 : -96),
+              },
+              viewportSize,
+              pipSize,
+              16,
+            )
+          : baseCoordinates;
         return (
           <DraggablePip
             key={source.id}
@@ -918,6 +944,7 @@ function FocusLayout({
             pipSize={pipSize}
             viewportSize={viewportSize}
             position={position}
+            controlsVisible={controlsVisible}
             onPromote={onPromote}
             onPipDrop={onPipDrop}
             onResize={onResize}
@@ -961,6 +988,7 @@ function DraggablePip({
   pipSize,
   viewportSize,
   position,
+  controlsVisible: _controlsVisible,
   onPromote,
   onPipDrop,
   onResize,
@@ -971,11 +999,13 @@ function DraggablePip({
   pipSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   position: PipPosition;
+  controlsVisible?: boolean;
   onPromote: (id: string) => void;
   onPipDrop: (id: string, event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
   onResize: (size: PipSize) => void;
   children: React.ReactNode;
 }) {
+  void _controlsVisible;
   const { isDragging, displayCoordinates, handlePointerDown, handlePointerMove, handlePointerUp, handlePointerCancel } =
     usePipDrag(coordinates, pipSize, viewportSize, onPipDrop, source.id, () => onPromote(source.id));
   const resizeHandle = usePipResize(pipSize, viewportSize, position.corner, onResize);
@@ -1158,6 +1188,36 @@ function VideoStream({
           Source unavailable
         </span>
       ) : null}
+    </div>
+  );
+}
+
+function CaptionOverlay({
+  text,
+  enabled,
+  controlsVisible,
+}: {
+  text: string | null;
+  enabled: boolean;
+  controlsVisible: boolean;
+}) {
+  if (!enabled || !text) return null;
+  return (
+    <div
+      data-testid="caption-display"
+      data-visible={controlsVisible}
+      className={cn(
+        'pointer-events-none absolute inset-x-0 z-[80] flex justify-center px-4 transition-all duration-300',
+        controlsVisible ? 'bottom-28' : 'bottom-6',
+      )}
+      aria-live="off"
+    >
+      <span
+        className="max-w-[min(48rem,90%)] rounded bg-black/85 px-3 py-1.5 text-center text-sm leading-snug text-white shadow-lg backdrop-blur sm:text-[15px]"
+        style={{ whiteSpace: 'pre-wrap' }}
+      >
+        {text}
+      </span>
     </div>
   );
 }
