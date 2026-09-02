@@ -52,7 +52,9 @@ import { usePlaybackSync } from './use-playback-sync';
 import { usePlayerState } from './use-player-state';
 import { usePersistedState } from './use-persisted-state';
 import { useVideoSource } from './use-video-source';
-import { Button, Slider, Tabs, TabsList, TabsTrigger } from '../../shared/ui';
+import { Button } from '../../shared/ui/button';
+import { Slider } from '../../shared/ui/slider';
+import { Tabs, TabsList, TabsTrigger } from '../../shared/ui/tabs';
 import { cn } from '../../shared/lib/cn';
 
 type PersistedPlayerSettings = {

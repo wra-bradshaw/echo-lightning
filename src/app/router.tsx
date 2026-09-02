@@ -8,7 +8,7 @@ import {
 import type { QueryClient } from '@tanstack/react-query';
 import type { EchoGateway } from '../domain';
 import type { LightningSettingsStore } from '../features/settings';
-import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo';
+import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo/routing/routes';
 import { AppShell } from './app-shell';
 import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionPage } from './pages';
 import {

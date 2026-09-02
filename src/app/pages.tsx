@@ -13,7 +13,10 @@ import {
 import { useLightningSettingsBundle } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
-import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Progress } from '../shared/ui';
+import { Badge } from '../shared/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../shared/ui/card';
+import { Input } from '../shared/ui/input';
+import { Progress } from '../shared/ui/progress';
 import { getRouteApi } from '@tanstack/react-router';
 import {
   classroomRoutePath,

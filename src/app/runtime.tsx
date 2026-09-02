@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { createRoot, type Root } from 'react-dom/client';
 import type { EchoGateway } from '../domain';
-import { createAuthenticatedEchoGateway } from '../integrations/echo';
+import { createAuthenticatedEchoGateway } from '../integrations/echo/gateway';
 import { canonicalEchoUrl } from '../integrations/echo/routing/routes';
 import { createLightningHistory, type LightningHistory } from '../platform/browser/navigation-history';
 import type { ExtensionResponse } from '../platform/extension/messages';

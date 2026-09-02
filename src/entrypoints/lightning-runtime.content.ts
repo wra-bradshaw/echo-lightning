@@ -3,7 +3,7 @@ import { defineContentScript } from 'wxt/utils/define-content-script';
 import { injectScript } from 'wxt/utils/inject-script';
 import styles from '../app/styles.css?inline';
 import { createLightningRuntime } from '../app/runtime';
-import { createBrowserStorageAdapter } from '../features/settings';
+import { createBrowserStorageAdapter } from '../features/settings/store';
 import { isEchoHost } from '../integrations/echo';
 import { createPageFetch } from '../integrations/echo/transport/page-fetch';
 import type { ExtensionResponse } from '../platform/extension/messages';

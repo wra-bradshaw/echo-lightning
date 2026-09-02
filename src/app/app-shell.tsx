@@ -1,7 +1,7 @@
 import { ArrowSquareOut, BookOpen } from '@phosphor-icons/react';
 import { Link, useRouter, useRouterState } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
-import { canonicalEchoUrl } from '../integrations/echo';
+import { canonicalEchoUrl } from '../integrations/echo/routing/routes';
 import { Button } from '../shared/ui/button';
 
 export function AppShell({ children, onUseOriginal }: { children: ReactNode; onUseOriginal: (url: string) => void }) {

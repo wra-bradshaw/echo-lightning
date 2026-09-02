@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useSyncExternalStore, type ReactNode } from 'react';
-import { createLightningSettingsStore } from '../features/settings';
+import { createLightningSettingsStore } from '../features/settings/store';
 import { SettingsProvider } from '../features/settings/react';
 import type { LightningSettingsStore } from '../features/settings/store';
 
