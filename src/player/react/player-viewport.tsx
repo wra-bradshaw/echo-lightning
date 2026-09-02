@@ -462,9 +462,12 @@ export function PlayerViewport({
       >
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-0 top-0 z-[80] flex items-start justify-between gap-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 transition-opacity duration-300 sm:p-5',
+            'pointer-events-none absolute inset-x-0 top-0 z-[999] flex items-start justify-between gap-4 p-3 transition-opacity duration-300 sm:p-5',
             controls.visible ? 'opacity-100' : 'opacity-0',
           )}
+          style={{
+            backgroundImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.4) 60%, transparent)',
+          }}
           data-testid="player-top-controls"
           data-visible={controls.visible}
         >
@@ -489,7 +492,7 @@ export function PlayerViewport({
           </div>
         </div>
 
-        <div className="relative min-h-0 flex-1 bg-black">
+        <div className="relative z-0 min-h-0 flex-1 bg-black">
           {state.mode === 'grid' ? (
             <div
               className="absolute inset-4 grid min-h-0 min-w-0"
@@ -565,9 +568,12 @@ export function PlayerViewport({
 
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-0 z-[80] bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pt-12 pb-4 transition-opacity duration-300 sm:px-5 sm:pb-5',
+            'pointer-events-none absolute inset-x-0 bottom-0 z-[999] px-3 pt-20 pb-4 transition-opacity duration-300 sm:px-5 sm:pb-5',
             controls.visible ? 'opacity-100' : 'pointer-events-none opacity-0',
           )}
+          style={{
+            backgroundImage: 'linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0.4) 60%, transparent)',
+          }}
           data-testid="player-bottom-controls"
           data-visible={controls.visible}
         >
