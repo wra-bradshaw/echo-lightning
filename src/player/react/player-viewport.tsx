@@ -666,7 +666,11 @@ export function PlayerViewport({
                 <Button
                   variant={captionsEnabled ? 'secondary' : 'ghost'}
                   size="sm"
-                  className={captionsEnabled ? '' : 'text-white hover:bg-white/15 hover:text-white'}
+                  className={
+                    captionsEnabled
+                      ? 'bg-white text-black hover:bg-white/90 hover:text-black'
+                      : 'text-white hover:bg-white/15 hover:text-white'
+                  }
                   aria-label={captionsEnabled ? 'Captions on' : 'Captions off'}
                   onClick={() => onCaptionsEnabledChange(!captionsEnabled)}
                 >
