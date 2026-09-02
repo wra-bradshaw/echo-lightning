@@ -1,5 +1,5 @@
-export const MAX_PLAYER_VOLUME = 1;
-export const PLAYER_VOLUME_SLIDER_STEP = 1;
+export const MAX_PLAYER_VOLUME = 5;
+export const PLAYER_VOLUME_SLIDER_STEP = 5;
 
 const MAX_SLIDER_VALUE = 100;
 
@@ -9,9 +9,9 @@ function clamp(value: number, min: number, max: number): number {
 
 export function sliderValueToPlayerVolume(sliderValue: number): number {
   const normalizedValue = clamp(sliderValue, 0, MAX_SLIDER_VALUE) / MAX_SLIDER_VALUE;
-  return MAX_PLAYER_VOLUME * normalizedValue;
+  return MAX_PLAYER_VOLUME * normalizedValue ** 2;
 }
 
 export function playerVolumeToSliderValue(volume: number): number {
-  return (clamp(volume, 0, MAX_PLAYER_VOLUME) / MAX_PLAYER_VOLUME) * MAX_SLIDER_VALUE;
+  return Math.sqrt(clamp(volume, 0, MAX_PLAYER_VOLUME) / MAX_PLAYER_VOLUME) * MAX_SLIDER_VALUE;
 }

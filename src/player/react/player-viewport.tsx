@@ -64,6 +64,17 @@ function formatDuration(seconds: number | undefined): string {
   return `${minutes}:${remainder}`;
 }
 
+function speedToSlider(speed: number): number {
+  const clamped = Math.min(10, Math.max(0.5, speed));
+  return Math.sqrt((clamped - 0.5) / 9.5) * 100;
+}
+
+function sliderToSpeed(slider: number): number {
+  const t = Math.min(100, Math.max(0, slider)) / 100;
+  const speed = 0.5 + t * t * 9.5;
+  return Math.round(speed * 8) / 8;
+}
+
 function sourceById(sources: readonly PlayerSource[], ids: readonly string[]): PlayerSource[] {
   const sourcesById = new Map(sources.map((source) => [source.id, source]));
   return ids.flatMap((id) => {
@@ -451,7 +462,7 @@ export function PlayerViewport({
       >
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-0 top-0 z-[80] flex items-start justify-between gap-4 bg-gradient-to-b from-black via-black/70 to-transparent p-3 transition-opacity duration-300 sm:p-5',
+            'pointer-events-none absolute inset-x-0 top-0 z-[80] flex items-start justify-between gap-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 transition-opacity duration-300 sm:p-5',
             controls.visible ? 'opacity-100' : 'opacity-0',
           )}
           data-testid="player-top-controls"
@@ -554,7 +565,7 @@ export function PlayerViewport({
 
         <div
           className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-0 z-[80] bg-gradient-to-t from-black via-black/80 to-transparent px-3 pt-16 pb-3 transition-opacity duration-300 sm:px-5 sm:pb-5',
+            'pointer-events-none absolute inset-x-0 bottom-0 z-[80] bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pt-12 pb-4 transition-opacity duration-300 sm:px-5 sm:pb-5',
             controls.visible ? 'opacity-100' : 'pointer-events-none opacity-0',
           )}
           data-testid="player-bottom-controls"
@@ -585,7 +596,7 @@ export function PlayerViewport({
                   {isMuted ? <SpeakerSlash className="size-5" /> : <SpeakerHigh className="size-5" />}
                 </Button>
                 <div
-                  className="grid w-0 grid-cols-[0fr] overflow-hidden opacity-0 transition-[width,grid-template-columns,opacity] delay-500 duration-200 group-hover/volume:w-36 group-hover/volume:grid-cols-[1fr] group-hover/volume:opacity-100 group-hover/volume:delay-0"
+                  className="grid w-36 grid-cols-[1fr] overflow-hidden opacity-0 transition-opacity delay-500 duration-200 group-hover/volume:opacity-100 group-hover/volume:delay-0"
                   data-testid="player-volume-slider-reveal"
                 >
                   <div className="flex min-w-0 items-center gap-2">
@@ -594,7 +605,7 @@ export function PlayerViewport({
                       data-testid="player-volume-slider"
                       value={[playerVolumeToSliderValue(volume)]}
                       min={0}
-                      max={100}
+                      max={playerVolumeToSliderValue(1)}
                       step={PLAYER_VOLUME_SLIDER_STEP}
                       onValueChange={(value) => {
                         const next = Array.isArray(value) ? Number(value[0]) : Number(value);
@@ -701,20 +712,20 @@ export function PlayerViewport({
                       : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`}
                   </Button>
                   <div
-                    className="grid w-0 grid-cols-[0fr] overflow-hidden opacity-0 transition-[width,grid-template-columns,opacity] delay-500 duration-200 group-hover/speed:w-36 group-hover/speed:grid-cols-[1fr] group-hover/speed:opacity-100 group-hover/speed:delay-0"
+                    className="grid w-36 grid-cols-[1fr] overflow-hidden opacity-0 transition-opacity delay-500 duration-200 group-hover/speed:opacity-100 group-hover/speed:delay-0"
                     data-testid="player-speed-slider-reveal"
                   >
                     <div className="flex min-w-0 items-center gap-2">
                       <Slider
                         aria-label="Playback speed"
                         data-testid="player-speed-slider"
-                        value={[playbackRate]}
-                        min={0.5}
-                        max={10}
-                        step={0.125}
+                        value={[Math.min(speedToSlider(1), speedToSlider(playbackRate))]}
+                        min={0}
+                        max={speedToSlider(1)}
+                        step={1}
                         onValueChange={(value) => {
                           const next = Array.isArray(value) ? Number(value[0]) : Number(value);
-                          if (Number.isFinite(next)) setAllPlaybackRate(next);
+                          if (Number.isFinite(next)) setAllPlaybackRate(sliderToSpeed(next));
                         }}
                       />
                       <span
