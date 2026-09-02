@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import { IdSchema } from '../shared/schema';
 
-const IdSchema = z.union([z.string(), z.number()]).transform(String);
 const TermSchema = z
   .object({
     id: IdSchema.optional(),
@@ -28,29 +28,8 @@ const LiveEnrollmentSchema = z
   .passthrough();
 const EnrollmentsSchema = z.object({ data: z.array(LiveEnrollmentSchema) }).passthrough();
 
-export function decodeEnrollments(payload: unknown) {
-  return EnrollmentsSchema.parse(payload);
-}
+export type EnrollmentsPayload = z.infer<typeof EnrollmentsSchema>;
 
-export function normalizeEnrollments(payload: z.infer<typeof EnrollmentsSchema>) {
-  return payload.data.flatMap(({ userSections, termsById }) =>
-    userSections.flatMap((section) => {
-      if (!section.sectionId) return [];
-      const term = section.termId ? termsById[section.termId] : undefined;
-      return [
-        {
-          id: section.sectionId,
-          sectionId: section.sectionId,
-          title: section.courseName ?? '',
-          ...(section.sectionName ? { institution: section.sectionName } : {}),
-          ...(section.courseId ? { courseId: section.courseId } : {}),
-          ...(section.courseCode ? { code: section.courseCode } : {}),
-          ...(term?.name ? { term: term.name } : {}),
-          ...(term?.startDate ? { termStart: term.startDate } : {}),
-          ...(term?.isActiveOrFuture !== undefined ? { isActive: term.isActiveOrFuture } : {}),
-          ...(section.lessonCount !== undefined ? { lessonCount: section.lessonCount } : {}),
-        },
-      ];
-    }),
-  );
+export function decodeEnrollments(payload: unknown): EnrollmentsPayload {
+  return EnrollmentsSchema.parse(payload);
 }

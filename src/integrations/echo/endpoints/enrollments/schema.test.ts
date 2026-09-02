@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { decodeEnrollments, normalizeEnrollments } from './schema';
+import { decodeEnrollments } from './schema';
+import { normalizeEnrollments } from './mapper';
 
 describe('enrollment schema', () => {
   it('normalizes live Echo sections with active term metadata', () => {

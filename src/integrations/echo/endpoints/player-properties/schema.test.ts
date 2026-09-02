@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { decodePlayerProperties, normalizePlayerProperties } from './schema';
+import { decodePlayerProperties } from './schema';
+import { normalizePlayerProperties } from './mapper';
 
 describe('player properties schema', () => {
   it('selects the best video source for each camera and parses resume data', () => {

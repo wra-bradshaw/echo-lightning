@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { decodeSyllabus, normalizeSyllabus } from './schema';
+import { decodeSyllabus } from './schema';
+import { normalizeSyllabus } from './mapper';
 
 describe('syllabus schema', () => {
   it('normalizes nested lessons and media metadata', () => {

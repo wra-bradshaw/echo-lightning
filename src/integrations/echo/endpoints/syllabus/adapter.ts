@@ -1,14 +1,19 @@
-import type { CancellationSignal, EchoGateway } from '../../../../domain';
-import type { EchoRequestOptions, EchoTransport } from '../../transport/client';
-import { decodeSyllabus, normalizeSyllabus } from './schema';
+import type { EchoGateway } from '../../../../domain';
+import { createEndpoint } from '../create-endpoint';
+import { decodeSyllabus } from './schema';
+import { normalizeSyllabus } from './mapper';
+import type { EchoTransport } from '../../transport/client';
 
 export function createSyllabusEndpoint(transport: EchoTransport): Pick<EchoGateway, 'getSectionSyllabus'> {
+  const getSectionSyllabus = createEndpoint(
+    transport,
+    (sectionId: string) => `/section/${encodeURIComponent(sectionId)}/syllabus`,
+    decodeSyllabus,
+    normalizeSyllabus,
+  );
   return {
-    getSectionSyllabus(sectionId, options?: { signal?: CancellationSignal }) {
-      const request: EchoRequestOptions | undefined = options ? { signal: options.signal as AbortSignal } : undefined;
-      return transport
-        .get(`/section/${encodeURIComponent(sectionId)}/syllabus`, decodeSyllabus, request)
-        .then(normalizeSyllabus);
+    getSectionSyllabus(sectionId, options) {
+      return getSectionSyllabus([sectionId], options);
     },
   };
 }
