@@ -77,9 +77,7 @@ export function canonicalEchoPath(route: EchoRoute): string {
   if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
   if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
   if (route.kind === 'classroom') {
-    return route.sectionId
-      ? `/section/${encodeURIComponent(route.sectionId)}/lesson/${encodeURIComponent(route.lessonId)}`
-      : `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
+    return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
   }
   return new URL(route.url, 'https://echo360.net.au').pathname;
 }

@@ -10,7 +10,7 @@ import type { EchoGateway } from '../domain';
 import type { LightningSettingsStore } from '../features/settings';
 import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo';
 import { AppShell } from './app-shell';
-import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionClassroomPage, SectionPage } from './pages';
+import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionPage } from './pages';
 
 export type LightningRouterContext = {
   gateway: EchoGateway;
@@ -56,18 +56,12 @@ export const classroomRoute = createRoute({
   path: '/lesson/$lessonId/classroom',
   component: ClassroomPage,
 });
-export const sectionClassroomRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/section/$sectionId/lesson/$lessonId',
-  component: SectionClassroomPage,
-});
 
 export const lightningRouteTree = rootRoute.addChildren([
   coursesRoute,
   courseDetailsRoute,
   sectionRoute,
   classroomRoute,
-  sectionClassroomRoute,
 ]);
 
 export function createLightningRouter(options: {

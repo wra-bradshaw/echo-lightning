@@ -230,7 +230,7 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await expect(lectureCard).toBeVisible();
   await expect(page.getByText('Watch lecture', { exact: true })).toHaveCount(0);
   await lectureCard.click();
-  await expect(page).toHaveURL(/\/section\/section-current\/lesson\/lesson-one/);
+  await expect(page).toHaveURL(/\/lesson\/lesson-one\/classroom/);
 
   const player = page.getByTestId('classroom-player');
   await expect(player).toBeVisible();
@@ -343,8 +343,8 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await navigate('/section/section-current/home');
   await expect(page).toHaveURL(/\/section\/section-current\/home$/);
   await expect(page.getByRole('heading', { name: 'Design of Algorithms' })).toBeVisible();
-  await navigate('/section/section-current/lesson/lesson-one');
-  await expect(page).toHaveURL(/\/section\/section-current\/lesson\/lesson-one/);
+  await navigate('/lesson/lesson-one/classroom');
+  await expect(page).toHaveURL(/\/lesson\/lesson-one\/classroom/);
   await expect(page.getByTestId('classroom-player')).toHaveAttribute('data-mode', 'focus');
   await expect(page.getByTestId('classroom-player').getByTestId('main-stream')).toBeVisible();
   const storedSettings = await readExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);

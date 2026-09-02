@@ -14,7 +14,7 @@ import { useLightningSettings } from '../features/settings';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Progress } from '../shared/ui';
-import { classroomRoute, courseDetailsRoute, coursesRoute, sectionClassroomRoute, sectionRoute } from './router';
+import { classroomRoute, courseDetailsRoute, coursesRoute, sectionRoute } from './router';
 
 function LoadingState({ label }: { label: string }) {
   return (
@@ -232,8 +232,8 @@ export function SectionPage() {
           return media ? (
             <Link
               key={lesson.id}
-              to="/section/$sectionId/lesson/$lessonId"
-              params={{ sectionId, lessonId: lesson.id }}
+              to="/lesson/$lessonId/classroom"
+              params={{ lessonId: lesson.id }}
               className="group focus-visible:ring-ring focus-visible:ring-offset-background block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             >
               {card}
@@ -275,36 +275,6 @@ export function ClassroomPage() {
   return (
     <ClassroomState title={lesson.title || `Lesson ${lessonId}`}>
       <LessonPlayer gateway={gateway} lesson={lesson} sectionId={sectionId} />
-    </ClassroomState>
-  );
-}
-
-export function SectionClassroomPage() {
-  const { sectionId, lessonId } = sectionClassroomRoute.useParams();
-  const { gateway } = sectionClassroomRoute.useRouteContext();
-  return <ClassroomExperience gateway={gateway} lessonId={lessonId} sectionId={sectionId} />;
-}
-
-function ClassroomExperience({
-  gateway,
-  lessonId,
-  sectionId,
-}: {
-  gateway: EchoGateway;
-  lessonId: string;
-  sectionId?: string;
-}) {
-  const syllabusQuery = useSectionSyllabus(gateway, sectionId ?? '', Boolean(sectionId));
-  const lesson = syllabusQuery.data?.find((item) => item.id === lessonId);
-  return (
-    <ClassroomState title={lesson?.title || `Lesson ${lessonId}`}>
-      {!sectionId ? <ClassroomMessage label="Open a lecture from a course to load its media." error /> : null}
-      {sectionId && syllabusQuery.isLoading ? <ClassroomMessage label="Preparing lecture…" /> : null}
-      {sectionId && syllabusQuery.isError ? <ClassroomMessage label="This lecture could not be loaded." error /> : null}
-      {sectionId && !syllabusQuery.isLoading && !syllabusQuery.isError && !lesson ? (
-        <ClassroomMessage label="This lecture is no longer available." error />
-      ) : null}
-      {lesson ? <LessonPlayer gateway={gateway} lesson={lesson} sectionId={sectionId} /> : null}
     </ClassroomState>
   );
 }
