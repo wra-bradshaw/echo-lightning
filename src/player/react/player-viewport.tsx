@@ -21,7 +21,7 @@ import {
   playerVolumeToSliderValue,
   sliderValueToPlayerVolume,
 } from '../core/player-volume';
-import { PLAYER_PLAYBACK_RATES, type PlayerHotkeyAction } from '../core/player-hotkeys';
+import type { PlayerHotkeyAction } from '../core/player-hotkeys';
 import type { PlayerAction } from '../core/player-state';
 import { synchronizeSecondaryVideo } from '../core/media-sync';
 import { useCaptionTracks } from './use-caption-tracks';
@@ -678,18 +678,48 @@ export function PlayerViewport({
                 >
                   CC
                 </Button>
-                <select
-                  aria-label="Playback speed"
-                  value={playbackRate}
-                  onChange={(event) => setAllPlaybackRate(Number(event.target.value))}
-                  className="h-8 rounded-lg border border-white/20 bg-white/10 px-2 text-xs text-white outline-none"
+                <div
+                  className="group/speed pointer-events-auto flex shrink-0 items-center"
+                  data-testid="player-speed-control"
                 >
-                  {PLAYER_PLAYBACK_RATES.map((rate) => (
-                    <option key={rate} value={rate} className="bg-zinc-900">
-                      {rate}x
-                    </option>
-                  ))}
-                </select>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="pointer-events-auto text-white hover:bg-white/15 hover:text-white"
+                    aria-label={`Playback speed ${playbackRate}x`}
+                  >
+                    {Number.isInteger(playbackRate)
+                      ? `${playbackRate}x`
+                      : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`}
+                  </Button>
+                  <div
+                    className="grid w-0 grid-cols-[0fr] overflow-hidden opacity-0 transition-[width,grid-template-columns,opacity] delay-500 duration-200 group-hover/speed:w-36 group-hover/speed:grid-cols-[1fr] group-hover/speed:opacity-100 group-hover/speed:delay-0"
+                    data-testid="player-speed-slider-reveal"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Slider
+                        aria-label="Playback speed"
+                        data-testid="player-speed-slider"
+                        value={[playbackRate]}
+                        min={0.5}
+                        max={10}
+                        step={0.125}
+                        onValueChange={(value) => {
+                          const next = Array.isArray(value) ? Number(value[0]) : Number(value);
+                          if (Number.isFinite(next)) setAllPlaybackRate(next);
+                        }}
+                      />
+                      <span
+                        data-testid="player-speed-value"
+                        className="w-12 shrink-0 text-right text-xs text-white/80 tabular-nums"
+                      >
+                        {Number.isInteger(playbackRate)
+                          ? `${playbackRate}x`
+                          : `${playbackRate.toFixed(3).replace(/\.?0+$/, '')}x`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
