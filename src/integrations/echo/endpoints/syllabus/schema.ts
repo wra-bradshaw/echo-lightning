@@ -36,9 +36,7 @@ const LiveSyllabusItemSchema = z
   .loose();
 const SyllabusSchema = z.union([
   z.array(SyllabusItemSchema),
-  z
-    .object({ items: z.array(SyllabusItemSchema).optional(), lessons: z.array(SyllabusItemSchema).optional() })
-    .loose(),
+  z.object({ items: z.array(SyllabusItemSchema).optional(), lessons: z.array(SyllabusItemSchema).optional() }).loose(),
   z.object({ data: z.array(LiveSyllabusItemSchema) }).loose(),
 ]);
 

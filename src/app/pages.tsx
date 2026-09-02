@@ -18,12 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../sh
 import { Input } from '../shared/ui/input';
 import { Progress } from '../shared/ui/progress';
 import { getRouteApi } from '@tanstack/react-router';
-import {
-  classroomRoutePath,
-  courseDetailsRoutePath,
-  coursesRoutePath,
-  sectionRoutePath,
-} from './routes';
+import { classroomRoutePath, courseDetailsRoutePath, coursesRoutePath, sectionRoutePath } from './routes';
 
 const coursesRouteApi = getRouteApi(coursesRoutePath);
 const courseDetailsRouteApi = getRouteApi(courseDetailsRoutePath);
@@ -175,7 +170,8 @@ export function SectionPage() {
   const syllabusQuery = useSectionSyllabus(gateway, sectionId);
   const course = coursesQuery.data?.find((candidate) => candidate.sectionId === sectionId);
   const lessons = useMemo(
-    () => (syllabusQuery.data ?? []).toSorted((left, right) => (left.startTime ?? '').localeCompare(right.startTime ?? '')),
+    () =>
+      (syllabusQuery.data ?? []).toSorted((left, right) => (left.startTime ?? '').localeCompare(right.startTime ?? '')),
     [syllabusQuery.data],
   );
   const videoProgress = useSectionVideoProgress(gateway, lessons);

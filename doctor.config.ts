@@ -1,5 +1,5 @@
 export default {
   ignore: {
-    files: [".output/**"],
+    files: ['.output/**'],
   },
 };
