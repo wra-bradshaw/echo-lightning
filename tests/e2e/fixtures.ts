@@ -3,6 +3,7 @@ import { chmod, mkdir, open, readFile, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authenticateEcho360 } from './echo360-auth';
+import { isEchoUrl } from '../../src/integrations/echo/routing/url';
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const pathToExtension = path.resolve(projectRoot, '../../.output/chrome-mv3');
@@ -26,23 +27,6 @@ type WorkerFixtures = {
   cleanAuthenticatedContext: BrowserContext;
   authenticatedContext: BrowserContext;
 };
-
-type DebugConfig = { debug?: unknown };
-
-type InstrumentedTestInfo = {
-  _configInternal?: { configCLIOverrides?: DebugConfig };
-};
-
-async function launchWithoutCliDebug<T>(testInfo: InstrumentedTestInfo, action: () => Promise<T>): Promise<T> {
-  const overrides = testInfo._configInternal?.configCLIOverrides;
-  const debug = overrides?.debug;
-  if (overrides && debug === 'cli') overrides.debug = undefined;
-  try {
-    return await action();
-  } finally {
-    if (overrides && debug === 'cli') overrides.debug = debug;
-  }
-}
 
 async function sleep(milliseconds: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -79,10 +63,8 @@ async function acquireAuthStateLock(): Promise<() => Promise<void>> {
 }
 
 function isAuthenticatedUrl(urlValue: string): boolean {
-  const baseUrl = process.env.ECHO360_BASE_URL?.trim() || 'https://echo360.net.au';
-  const base = new URL(baseUrl);
   const url = new URL(urlValue);
-  return url.hostname === base.hostname && !/^\/login(?:\/|$)/i.test(url.pathname);
+  return isEchoUrl(url) && !/^\/login(?:\/|$)/i.test(url.pathname);
 }
 
 async function hasValidAuth(page: import('@playwright/test').Page): Promise<boolean> {
@@ -119,7 +101,7 @@ async function applyStorageState(context: BrowserContext, storageState: StorageS
   }
 }
 
-async function createAuthenticatedContext(testInfo: InstrumentedTestInfo): Promise<{
+async function createAuthenticatedContext(): Promise<{
   context: BrowserContext;
   authPage: import('@playwright/test').Page;
 }> {
@@ -127,12 +109,10 @@ async function createAuthenticatedContext(testInfo: InstrumentedTestInfo): Promi
   let context: BrowserContext | undefined;
   try {
     const storageState = await readAuthState();
-    context = await launchWithoutCliDebug(testInfo, () =>
-      chromium.launchPersistentContext('', {
-        channel: 'chromium',
-        headless: process.env.HEADED !== '1',
-      }),
-    );
+    context = await chromium.launchPersistentContext('', {
+      channel: 'chromium',
+      headless: process.env.HEADED !== '1',
+    });
     await applyStorageState(context, storageState);
     const authPage = await context.newPage();
     if (!storageState || !(await hasValidAuth(authPage))) {
@@ -151,11 +131,113 @@ async function createAuthenticatedContext(testInfo: InstrumentedTestInfo): Promi
   }
 }
 
+export async function createMockEchoServer(
+  page: import('@playwright/test').Page,
+): Promise<{ positionRequests: Array<{ method: string; seconds: string }> }> {
+  const serverPosition = 125;
+  await page.route('**/user/enrollments', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: [
+          {
+            userSections: [
+              {
+                sectionId: 'section-current',
+                sectionName: 'COMP20007_2026_SM1',
+                courseId: 'course-current',
+                courseCode: 'COMP20007',
+                courseName: 'Design of Algorithms',
+                lessonCount: 2,
+                termId: 'term-current',
+              },
+            ],
+            termsById: {
+              'term-current': { id: 'term-current', name: '2026_SM1', startDate: '2026-01-01', isActiveOrFuture: true },
+            },
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route('**/section/section-current/syllabus', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: [
+          {
+            type: 'SyllabusLessonType',
+            lesson: {
+              lesson: {
+                id: 'lesson-one',
+                sectionId: 'section-current',
+                displayName: 'Lecture 1 — Graphs',
+                timing: { start: '2026-03-03T15:05:00.000', end: '2026-03-03T16:00:00.000' },
+              },
+              medias: [{ id: 'media-one', title: 'Lecture 1 — Graphs', isAvailable: true, isAudioOnly: false }],
+            },
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route('**/api/ui/echoplayer/lessons/lesson-one/media/media-one/player-properties', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: {
+          mediaId: 'media-one',
+          mediaName: 'Lecture 1 — Graphs',
+          captions: 'https://content.example.test/captions.vtt',
+          lastPlayedToSeconds: serverPosition,
+          playableAudioVideo: {
+            duration: 'PT600S',
+            mediaId: 'media-one',
+            playableMedias: [
+              {
+                sourceIndex: 0,
+                trackType: ['Audio', 'Video'],
+                uri: 'https://content.example.test/camera-1.m3u8',
+                isHls: true,
+              },
+              {
+                sourceIndex: 1,
+                trackType: ['Audio', 'Video'],
+                uri: 'https://content.example.test/camera-2.m3u8',
+                isHls: true,
+              },
+              {
+                sourceIndex: 2,
+                trackType: ['Audio', 'Video'],
+                uri: 'https://content.example.test/camera-3.m3u8',
+                isHls: true,
+              },
+            ],
+          },
+        },
+      }),
+    }),
+  );
+  const positionRequests: Array<{ method: string; seconds: string }> = [];
+  await page.route('**/api/ui/echoplayer/media-one/last-played-to-seconds**', (route) => {
+    positionRequests.push({
+      method: route.request().method(),
+      seconds: new URL(route.request().url()).searchParams.get('seconds') ?? '',
+    });
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok' }) });
+  });
+  await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
+  return { positionRequests };
+}
+
 export const test = base.extend<TestFixtures, WorkerFixtures>({
   cleanAuthenticatedContext: [
     async ({ browser: browserFixture }, use) => {
       void browserFixture;
-      const { context, authPage } = await createAuthenticatedContext(test.info() as unknown as InstrumentedTestInfo);
+      const { context, authPage } = await createAuthenticatedContext();
       try {
         await use(context);
       } finally {

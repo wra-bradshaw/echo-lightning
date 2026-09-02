@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { createMockEchoServer, expect, test } from './fixtures';
 import {
   clearExtensionLocalStorage,
   hasLightningRules,
@@ -92,102 +92,7 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   page,
   serviceWorker,
 }) => {
-  const serverPosition = 125;
-  await page.route('**/user/enrollments', (route) =>
-    route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        status: 'ok',
-        data: [
-          {
-            userSections: [
-              {
-                sectionId: 'section-current',
-                sectionName: 'COMP20007_2026_SM1',
-                courseId: 'course-current',
-                courseCode: 'COMP20007',
-                courseName: 'Design of Algorithms',
-                lessonCount: 2,
-                termId: 'term-current',
-              },
-            ],
-            termsById: {
-              'term-current': { id: 'term-current', name: '2026_SM1', startDate: '2026-01-01', isActiveOrFuture: true },
-            },
-          },
-        ],
-      }),
-    }),
-  );
-  await page.route('**/section/section-current/syllabus', (route) =>
-    route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        status: 'ok',
-        data: [
-          {
-            type: 'SyllabusLessonType',
-            lesson: {
-              lesson: {
-                id: 'lesson-one',
-                sectionId: 'section-current',
-                displayName: 'Lecture 1 — Graphs',
-                timing: { start: '2026-03-03T15:05:00.000', end: '2026-03-03T16:00:00.000' },
-              },
-              medias: [{ id: 'media-one', title: 'Lecture 1 — Graphs', isAvailable: true, isAudioOnly: false }],
-            },
-          },
-        ],
-      }),
-    }),
-  );
-  await page.route('**/api/ui/echoplayer/lessons/lesson-one/media/media-one/player-properties', (route) =>
-    route.fulfill({
-      contentType: 'application/json',
-      body: JSON.stringify({
-        status: 'ok',
-        data: {
-          mediaId: 'media-one',
-          mediaName: 'Lecture 1 — Graphs',
-          captions: 'https://content.example.test/captions.vtt',
-          lastPlayedToSeconds: serverPosition,
-          playableAudioVideo: {
-            duration: 'PT600S',
-            mediaId: 'media-one',
-            playableMedias: [
-              {
-                sourceIndex: 0,
-                trackType: ['Audio', 'Video'],
-                uri: 'https://content.example.test/camera-1.m3u8',
-                isHls: true,
-              },
-              {
-                sourceIndex: 1,
-                trackType: ['Audio', 'Video'],
-                uri: 'https://content.example.test/camera-2.m3u8',
-                isHls: true,
-              },
-              {
-                sourceIndex: 2,
-                trackType: ['Audio', 'Video'],
-                uri: 'https://content.example.test/camera-3.m3u8',
-                isHls: true,
-              },
-            ],
-          },
-        },
-      }),
-    }),
-  );
-  const positionRequests: Array<{ method: string; seconds: string }> = [];
-  await page.route('**/api/ui/echoplayer/media-one/last-played-to-seconds**', (route) => {
-    positionRequests.push({
-      method: route.request().method(),
-      seconds: new URL(route.request().url()).searchParams.get('seconds') ?? '',
-    });
-    return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ status: 'ok' }) });
-  });
-  await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
+  const { positionRequests } = await createMockEchoServer(page);
 
   await page.bringToFront();
   const tabId = await tabIdForUrl(serviceWorker, page.url());
