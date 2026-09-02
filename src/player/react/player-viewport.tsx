@@ -494,7 +494,7 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
       <MotionConfig reducedMotion="user">
         <div
           ref={viewportRef}
-          role="button"
+          role="region"
           aria-label="Video player"
           tabIndex={0}
           className="relative flex h-full min-h-0 flex-col overflow-hidden bg-zinc-950 text-white"
