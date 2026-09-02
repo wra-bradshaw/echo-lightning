@@ -1,6 +1,5 @@
 import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
-import { createShadowRootUi } from 'wxt/utils/content-script-ui/shadow-root';
 import { injectScript } from 'wxt/utils/inject-script';
 import styles from '../app/styles.css?inline';
 import { createLightningRuntime } from '../app/runtime';
@@ -27,58 +26,43 @@ export default defineContentScript({
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches;
     syncOuterTheme(isDark);
-    let lightning: ReturnType<typeof createLightningRuntime> | undefined;
-    const ui = await createShadowRootUi(ctx, {
-      name: 'echo-lightning',
-      position: 'overlay',
-      anchor: 'body',
-      append: 'last',
-      css: styles,
-      onMount: (container, _shadow, shadowHost) => {
-        shadowHost.id = 'echo-lightning-host';
-        shadowHost.dataset.echoLightning = 'true';
-        Object.assign(shadowHost.style, {
-          position: 'fixed',
-          inset: '0',
-          zIndex: '2147483647',
-          width: 'auto',
-          height: 'auto',
-          overflow: 'auto',
-          backgroundColor: 'hsl(var(--lightning-bg))',
-          pointerEvents: 'auto',
-        });
-        syncOuterTheme(isDark);
-        const app = document.createElement('div');
-        app.id = 'lightning-app';
-        container.append(app);
-        lightning = createLightningRuntime({
-          window,
-          sendMessage: (message) => runtimeApi.sendMessage(message),
-          fetcher: createPageFetch(window),
-          settingsStorage: createBrowserStorageAdapter(browser.storage.local),
-          cleanup: () => ui.remove(),
-        });
-        lightning.mount(app);
-        const handlePageHide = () => lightning?.dispose();
-        window.addEventListener('pagehide', handlePageHide, { once: true });
-        ctx.onInvalidated(() => {
-          window.removeEventListener('pagehide', handlePageHide);
-          document.getElementById('echo-lightning-takeover')?.remove();
-          document.getElementById('lightning-takeover')?.remove();
-          lightning?.dispose();
-        });
-        return lightning;
-      },
-      onRemove: (mounted) => {
-        mounted?.dispose();
-        document.getElementById('echo-lightning-takeover')?.remove();
-        document.getElementById('lightning-takeover')?.remove();
-      },
+    const host = document.createElement('div');
+    host.id = 'echo-lightning-host';
+    host.dataset.echoLightning = 'true';
+    Object.assign(host.style, {
+      position: 'fixed',
+      inset: '0',
+      zIndex: '2147483647',
+      pointerEvents: 'auto',
+      backgroundColor: 'hsl(var(--lightning-bg))',
+      overflow: 'auto',
     });
+    const shadow = host.attachShadow({ mode: 'open' });
+    const style = document.createElement('style');
+    style.textContent = styles;
+    shadow.append(style);
+    const app = document.createElement('div');
+    app.id = 'lightning-app';
+    shadow.append(app);
+    (document.documentElement || document.body).append(host);
+    syncOuterTheme(isDark);
+    let lightning: ReturnType<typeof createLightningRuntime> | undefined;
+    lightning = createLightningRuntime({
+      window,
+      sendMessage: (message) => runtimeApi.sendMessage(message),
+      fetcher: createPageFetch(window),
+      settingsStorage: createBrowserStorageAdapter(browser.storage.local),
+      cleanup: () => host.remove(),
+    });
+    lightning.mount(app);
+    const handlePageHide = () => lightning?.dispose();
+    window.addEventListener('pagehide', handlePageHide, { once: true });
     ctx.onInvalidated(() => {
+      window.removeEventListener('pagehide', handlePageHide);
       document.getElementById('echo-lightning-takeover')?.remove();
       document.getElementById('lightning-takeover')?.remove();
+      lightning?.dispose();
+      host.remove();
     });
-    ui.mount();
   },
 });
