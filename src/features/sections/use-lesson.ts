@@ -15,6 +15,7 @@ export function useLesson(gateway: EchoGateway, lessonId: string, enabled = Bool
   });
   const isLoading = enabled && (coursesQuery.isLoading || syllabiQueries.some((q) => q.isLoading));
   const isError = enabled && (coursesQuery.isError || syllabiQueries.some((q) => q.isError));
+  const error = coursesQuery.error ?? syllabiQueries.find((q) => q.error)?.error;
   const found = (() => {
     if (!enabled || isLoading || isError) return undefined;
     for (let index = 0; index < syllabiQueries.length; index += 1) {
@@ -32,5 +33,6 @@ export function useLesson(gateway: EchoGateway, lessonId: string, enabled = Bool
     sectionId: found?.sectionId as string | undefined,
     isLoading,
     isError,
+    error,
   };
 }

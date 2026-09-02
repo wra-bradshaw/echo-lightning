@@ -7,6 +7,7 @@ import { syncOuterTheme } from '../app/theme';
 import { createBrowserStorageAdapter } from '../features/settings/store';
 import { isEchoHost } from '../integrations/echo';
 import { createPageFetch } from '../integrations/echo/transport/page-fetch';
+import { isLoggedOutFromDOM } from '../platform/browser/auth-detector';
 import type { ExtensionResponse } from '../platform/extension/messages';
 
 type Runtime = { sendMessage: (message: unknown) => Promise<ExtensionResponse> };
@@ -19,6 +20,21 @@ export default defineContentScript({
   async main(ctx) {
     if (!isEchoHost(location.hostname) || document.getElementById('echo-lightning-host')) return;
     const runtimeApi = browser.runtime as unknown as Runtime;
+    let globallyDisabled = false;
+    try {
+      const stored = await browser.storage.local.get('lightning.globalEnabled');
+      globallyDisabled = stored['lightning.globalEnabled'] === false;
+    } catch {
+      void 0;
+    }
+    try {
+      if (!globallyDisabled && isLoggedOutFromDOM(document)) {
+        void runtimeApi.sendMessage({ type: 'reportLoggedOut', url: location.href }).catch(() => undefined);
+        return;
+      }
+    } catch {
+      void 0;
+    }
     await injectScript('/history-bridge.js').catch((error) => console.warn('Unable to install history bridge.', error));
     await injectScript('/api-bridge.js').catch((error) => console.warn('Unable to install API bridge.', error));
     const isDark =

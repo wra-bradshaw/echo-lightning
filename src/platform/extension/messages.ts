@@ -2,8 +2,9 @@ import type { TabMode } from './mode-store';
 
 export type ExtensionMessage =
   | { type: 'getMode' }
-  | { type: 'bootstrap'; url: string }
-  | { type: 'routeChanged'; url: string }
+  | { type: 'bootstrap'; url: string; isLoggedOut?: boolean; domLoggedOut?: boolean; isLoggedOutFromDOM?: boolean }
+  | { type: 'routeChanged'; url: string; isLoggedOut?: boolean; domLoggedOut?: boolean; isLoggedOutFromDOM?: boolean }
+  | { type: 'reportLoggedOut'; url: string }
   | { type: 'enableReplacement' }
   | { type: 'disableReplacement' }
   | { type: 'useOriginal'; url?: string };
@@ -18,6 +19,7 @@ export function isExtensionMessage(value: unknown): value is ExtensionMessage {
     type === 'getMode' ||
     type === 'bootstrap' ||
     type === 'routeChanged' ||
+    type === 'reportLoggedOut' ||
     type === 'enableReplacement' ||
     type === 'disableReplacement' ||
     type === 'useOriginal'

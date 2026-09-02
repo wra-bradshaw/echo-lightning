@@ -1,5 +1,5 @@
 import { ArrowLeft, CircleNotch, Clock } from '@phosphor-icons/react';
-import { Link } from '@tanstack/react-router';
+import { getRouteApi, Link, useRouter } from '@tanstack/react-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { EchoGateway, SyllabusItem } from '../domain';
 import { useCourses } from '../features/courses';
@@ -11,13 +11,16 @@ import {
   useSectionVideoProgress,
 } from '../features/sections';
 import { useLightningSettingsBundle } from '../features/settings';
+import { AuthenticationError } from '../integrations/echo/transport/errors';
+import { officialLoginUrl } from '../integrations/echo/transport/authentication-recovery';
+import { canonicalEchoUrl } from '../integrations/echo/routing/routes';
 import { usePlayerProperties } from '../player/react/use-player-properties';
 import { PlayerViewport } from '../player/react/player-viewport';
 import { Badge } from '../shared/ui/badge';
+import { Button } from '../shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../shared/ui/card';
 import { Input } from '../shared/ui/input';
 import { Progress } from '../shared/ui/progress';
-import { getRouteApi } from '@tanstack/react-router';
 import { classroomRoutePath, courseDetailsRoutePath, coursesRoutePath, sectionRoutePath } from './routes';
 
 const coursesRouteApi = getRouteApi(coursesRoutePath);
@@ -40,6 +43,37 @@ function ErrorState({ label }: { label: string }) {
   return (
     <Card>
       <CardContent className="text-destructive py-10 text-sm">{label}</CardContent>
+    </Card>
+  );
+}
+
+function isAuthenticationError(error: unknown): boolean {
+  return error instanceof AuthenticationError;
+}
+
+export function AuthRequiredState() {
+  const router = useRouter();
+  const current = (() => {
+    try {
+      return canonicalEchoUrl(new URL(router.history.location.href, window.location.href));
+    } catch {
+      return window.location.href;
+    }
+  })();
+  const loginUrl = officialLoginUrl(current);
+  const context = (router.options as unknown as { context?: { onUseOriginal?: (url?: string) => void } }).context;
+  return (
+    <Card>
+      <CardContent className="space-y-3 py-10 text-center">
+        <p className="font-medium">Please sign in to view Echo360 recordings</p>
+        <p className="text-muted-foreground text-sm">Lightning hides the original UI only while you’re signed in.</p>
+        <div className="flex justify-center gap-2">
+          <Button onClick={() => window.location.assign(loginUrl)}>Sign in via Echo360</Button>
+          <Button variant="outline" onClick={() => context?.onUseOriginal?.(current)}>
+            Use original Echo UI
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
 }
@@ -85,6 +119,8 @@ export function CoursesPage() {
         return termOrder || left.title.localeCompare(right.title);
       });
   }, [coursesQuery.data, search]);
+
+  if (isAuthenticationError(coursesQuery.error)) return <AuthRequiredState />;
 
   return (
     <>
@@ -175,6 +211,9 @@ export function SectionPage() {
     [syllabusQuery.data],
   );
   const videoProgress = useSectionVideoProgress(gateway, lessons);
+  if (isAuthenticationError(syllabusQuery.error) || isAuthenticationError(coursesQuery.error)) {
+    return <AuthRequiredState />;
+  }
   return (
     <>
       <Link
@@ -257,7 +296,18 @@ export function SectionPage() {
 export function ClassroomPage() {
   const { lessonId } = classroomRouteApi.useParams();
   const { gateway } = classroomRouteApi.useRouteContext();
-  const { lesson, sectionId, isLoading, isError } = useLesson(gateway, lessonId);
+  const { lesson, sectionId, isLoading, isError, error } = useLesson(gateway, lessonId);
+  if (isAuthenticationError(error)) {
+    return (
+      <ClassroomState title={`Lesson ${lessonId}`}>
+        <div className="flex h-full items-center justify-center p-6">
+          <div className="w-full max-w-md">
+            <AuthRequiredState />
+          </div>
+        </div>
+      </ClassroomState>
+    );
+  }
   if (isLoading) {
     return (
       <ClassroomState title={`Lesson ${lessonId}`}>
@@ -325,6 +375,15 @@ function LessonPlayer({
     savedIsMuted,
     setMutedForSection,
   } = settings;
+  if (isAuthenticationError(playerQuery.error)) {
+    return (
+      <div className="flex h-full items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <AuthRequiredState />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="h-full min-h-0 overflow-hidden">
       {playerQuery.isLoading ? <ClassroomMessage label="Preparing video sources…" /> : null}

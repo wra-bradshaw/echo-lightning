@@ -11,6 +11,7 @@ import {
   type LightningSettingsStore,
   type SettingsStorageInput,
 } from '../features/settings';
+import { AuthenticationError } from '../integrations/echo/transport/errors';
 import { ErrorBoundary } from './error-boundary';
 import { createLightningRouter } from './router';
 import { AppProviders, createLightningQueryClient } from './providers';
@@ -39,6 +40,14 @@ export type LightningRuntimeOptions = {
 
 export function createLightningRuntime(options: LightningRuntimeOptions): LightningRuntime {
   const queryClient = options.queryClientFactory?.() ?? createLightningQueryClient();
+  queryClient.setDefaultOptions({
+    queries: {
+      retry: (failureCount, error) => {
+        if (error instanceof AuthenticationError) return false;
+        return failureCount < 1;
+      },
+    },
+  });
   const routeChanged = (url: string) => {
     void options.sendMessage({ type: 'routeChanged', url });
   };
