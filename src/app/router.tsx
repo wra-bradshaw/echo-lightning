@@ -40,22 +40,22 @@ const rootRoute = createRootRouteWithContext<LightningRouterContext>()({
   notFoundComponent: UnsupportedPage,
 });
 
-export const coursesRoute = createRoute({
+const coursesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: coursesRoutePath,
   component: CoursesPage,
 });
-export const courseDetailsRoute = createRoute({
+const courseDetailsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: courseDetailsRoutePath,
   component: CourseDetailsPage,
 });
-export const sectionRoute = createRoute({
+const sectionRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: sectionRoutePath,
   component: SectionPage,
 });
-export const classroomRoute = createRoute({
+const classroomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: classroomRoutePath,
   component: ClassroomPage,
