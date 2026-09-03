@@ -243,4 +243,3 @@ export function createGlobalModeStore(area: BrowserStorageArea): GlobalModeStore
     },
   };
 }
-

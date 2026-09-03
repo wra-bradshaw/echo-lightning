@@ -376,4 +376,3 @@ export function createBackgroundController(deps: BackgroundControllerDeps) {
     },
   };
 }
-
