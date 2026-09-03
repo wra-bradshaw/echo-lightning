@@ -13,3 +13,7 @@ export const coursesRoutePath = '/courses' as const;
 export const courseDetailsRoutePath = '/courses/$courseId' as const;
 export const sectionRoutePath = '/section/$sectionId/home' as const;
 export const classroomRoutePath = '/lesson/$lessonId/classroom' as const;
+
+export function sectionHref(sectionId: string) {
+  return { to: sectionRoutePath, params: { sectionId } } as const;
+}

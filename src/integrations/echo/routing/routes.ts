@@ -73,38 +73,34 @@ export function parseEchoRoute(input: string | URL): EchoRoute {
   return { kind: 'unsupported', url: normalized };
 }
 
-export type EchoPathMode = 'canonical' | 'stock';
-type EchoRewriteMode = 'input' | 'output';
-
-export function getEchoPath(route: EchoRoute, mode: EchoPathMode): string {
-  switch (mode) {
-    case 'canonical':
-    case 'stock':
-      if (route.kind === 'courses')
-        return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
-      if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
-      if (route.kind === 'classroom') return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
-      return new URL(route.url, 'https://echo360.net.au').pathname;
-  }
+export function getEchoPath(route: EchoRoute): string {
+  if (route.kind === 'courses') return route.courseId ? `/courses/${encodeURIComponent(route.courseId)}` : '/courses';
+  if (route.kind === 'section') return `/section/${encodeURIComponent(route.sectionId)}/home`;
+  if (route.kind === 'classroom') return `/lesson/${encodeURIComponent(route.lessonId)}/classroom`;
+  return new URL(route.url, 'https://echo360.net.au').pathname;
 }
 
-export function normalizeEchoUrl(input: string | URL, mode: EchoPathMode): string {
+export function normalizeEchoUrl(input: string | URL): string {
   const route = parseEchoRoute(input);
   if (route.kind === 'unsupported' || route.kind === 'auth') return route.url;
   const url = new URL(route.url);
-  url.pathname = getEchoPath(route, mode);
+  url.pathname = getEchoPath(route);
   url.search = '';
   url.hash = '';
   return url.toString();
 }
 
 export function canonicalEchoUrl(input: string | URL): string {
-  return normalizeEchoUrl(input, 'canonical');
+  return normalizeEchoUrl(input);
 }
 
 export function stockEchoUrl(input: string | URL): string {
-  return normalizeEchoUrl(input, 'stock');
+  return canonicalEchoUrl(input);
 }
+
+/** @deprecated Use canonicalEchoUrl - stock and canonical are identical */
+export type EchoPathMode = 'canonical' | 'stock';
+type EchoRewriteMode = 'input' | 'output';
 
 function parseRewriteRoute(url: URL): EchoRoute {
   return parseEchoRoute(
@@ -116,7 +112,7 @@ function rewriteEchoUrl({ url }: { url: URL }, mode: EchoRewriteMode): URL | und
   const route = parseRewriteRoute(url);
   if (mode === 'input' && (route.kind === 'unsupported' || route.kind === 'auth')) return undefined;
   const rewritten = new URL(url.href);
-  if (route.kind !== 'unsupported' && route.kind !== 'auth') rewritten.pathname = getEchoPath(route, 'canonical');
+  if (route.kind !== 'unsupported' && route.kind !== 'auth') rewritten.pathname = getEchoPath(route);
   return rewritten;
 }
 

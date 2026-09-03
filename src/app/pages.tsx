@@ -21,7 +21,8 @@ import { Button } from '../shared/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../shared/ui/card';
 import { Input } from '../shared/ui/input';
 import { Progress } from '../shared/ui/progress';
-import { classroomRoutePath, courseDetailsRoutePath, coursesRoutePath, sectionRoutePath } from './routes';
+import { formatDate, formatDuration } from '../shared/lib/format';
+import { classroomRoutePath, courseDetailsRoutePath, coursesRoutePath, sectionRoutePath, sectionHref } from './routes';
 
 const coursesRouteApi = getRouteApi(coursesRoutePath);
 const courseDetailsRouteApi = getRouteApi(courseDetailsRoutePath);
@@ -76,27 +77,6 @@ function AuthRequiredState() {
       </CardContent>
     </Card>
   );
-}
-
-function formatDuration(seconds: number | undefined): string {
-  if (!seconds || seconds < 1) return '';
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, '0');
-  return `${minutes}:${remainder}`;
-}
-
-function formatDate(value: string | undefined): string {
-  if (!value) return '';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? value
-    : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function sectionHref(sectionId: string) {
-  return { to: '/section/$sectionId/home' as const, params: { sectionId } };
 }
 
 export function CoursesPage() {

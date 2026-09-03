@@ -57,6 +57,7 @@ import { Button } from '../../shared/ui/button';
 import { Slider } from '../../shared/ui/slider';
 import { Tabs, TabsList, TabsTrigger } from '../../shared/ui/tabs';
 import { cn } from '../../shared/lib/cn';
+import { formatPlayerTime as formatDuration } from '../../shared/lib/format';
 
 type PersistedPlayerSettings = {
   savedSelectedIds?: readonly string[];
@@ -84,15 +85,6 @@ type PlayerViewportProps = {
 };
 
 type VideoElements = Record<string, HTMLVideoElement>;
-
-function formatDuration(seconds: number | undefined): string {
-  if (!seconds || seconds < 1) return '0:00';
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, '0');
-  return `${minutes}:${remainder}`;
-}
 
 function speedToSlider(speed: number): number {
   const clamped = Math.min(10, Math.max(0.5, speed));

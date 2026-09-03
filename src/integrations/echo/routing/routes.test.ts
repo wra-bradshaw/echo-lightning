@@ -7,6 +7,7 @@ import {
   parseEchoRoute,
   rewriteEchoInput,
   rewriteEchoOutput,
+  stockEchoUrl,
 } from './routes';
 
 describe('parseEchoRoute', () => {
@@ -37,12 +38,12 @@ describe('parseEchoRoute', () => {
       'https://echo360.net.au/lesson/lesson%201/classroom',
     );
   });
-  it('normalizes canonical and stock URLs through the shared helper', () => {
+  it('normalizes canonical URLs through the shared helper', () => {
     const input = 'https://echo360.net.au/home?tab=recent#top';
-    expect(normalizeEchoUrl(input, 'canonical')).toBe('https://echo360.net.au/courses');
-    expect(normalizeEchoUrl(input, 'stock')).toBe('https://echo360.net.au/courses');
-    expect(getEchoPath(parseEchoRoute(input), 'canonical')).toBe('/courses');
-    expect(getEchoPath(parseEchoRoute(input), 'stock')).toBe('/courses');
+    expect(normalizeEchoUrl(input)).toBe('https://echo360.net.au/courses');
+    expect(canonicalEchoUrl(input)).toBe('https://echo360.net.au/courses');
+    expect(stockEchoUrl(input)).toBe('https://echo360.net.au/courses');
+    expect(getEchoPath(parseEchoRoute(input))).toBe('/courses');
   });
   it('provides TanStack input and output rewrites', () => {
     expect(rewriteEchoInput({ url: new URL('https://echo360.net.au/home') })?.pathname).toBe('/courses');
