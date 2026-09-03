@@ -12,14 +12,16 @@ export type EchoGatewayOptions = {
   onAuthenticationExpired?: () => Promise<void> | void;
 };
 
+const endpointFactories = [
+  createEnrollmentsEndpoint,
+  createSyllabusEndpoint,
+  createPlayerPropertiesEndpoint,
+  createPlayerPositionEndpoint,
+] as const;
+
 export function createEchoGateway(options: EchoGatewayOptions): EchoGateway {
   const transport = new EchoTransport(options.origin, options.fetcher, options.onAuthenticationExpired);
-  return {
-    ...createEnrollmentsEndpoint(transport),
-    ...createSyllabusEndpoint(transport),
-    ...createPlayerPropertiesEndpoint(transport),
-    ...createPlayerPositionEndpoint(transport),
-  };
+  return Object.assign({}, ...endpointFactories.map((factory) => factory(transport)));
 }
 
 export function createAuthenticatedEchoGateway(options: {
