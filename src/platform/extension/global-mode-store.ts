@@ -1,8 +1,7 @@
 import type { StateStorage } from 'zustand/middleware';
 
 export const GLOBAL_ENABLED_KEY = 'lightning.globalEnabled';
-export const GLOBAL_MODE_STORAGE_KEY = GLOBAL_ENABLED_KEY;
-export const LEGACY_TAB_MODES_KEY = 'lightning.tabModes';
+const LEGACY_TAB_MODES_KEY = 'lightning.tabModes';
 
 export type BrowserStorageArea = {
   get: (keys?: string | string[] | null) => Promise<Record<string, unknown>>;
@@ -10,9 +9,9 @@ export type BrowserStorageArea = {
   remove: (keys: string | string[]) => Promise<void>;
 };
 
-export type SettingsStorage = StateStorage;
+type SettingsStorage = StateStorage;
 
-export function createBrowserStorageAdapter(area: BrowserStorageArea): SettingsStorage {
+function createBrowserStorageAdapter(area: BrowserStorageArea): SettingsStorage {
   return {
     async getItem(name) {
       const values = await area.get(name);
@@ -245,6 +244,3 @@ export function createGlobalModeStore(area: BrowserStorageArea): GlobalModeStore
   };
 }
 
-export function createGlobalEnabledStore(area: BrowserStorageArea): GlobalModeStore {
-  return createGlobalModeStore(area);
-}
