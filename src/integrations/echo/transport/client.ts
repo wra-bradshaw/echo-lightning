@@ -37,12 +37,6 @@ export class EchoTransport {
       },
       throwHttpErrors: false,
       hooks: {
-        beforeRequest: [
-          ({ request }) => {
-            if (new URL(request.url).origin !== this.origin)
-              throw new TypeError(`Echo API requests must stay same-origin on ${this.origin}.`);
-          },
-        ],
         afterResponse: [
           async ({ response }) => {
             const redirectedToLogin =
@@ -71,7 +65,6 @@ export class EchoTransport {
       const response = await this.client(url, {
         ...requestOptions,
         ...(body === undefined ? {} : { json: body }),
-        throwHttpErrors: false,
       });
       if (!response.ok) throw new HttpError(response.status);
       let payload: unknown;
