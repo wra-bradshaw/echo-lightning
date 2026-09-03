@@ -3,7 +3,7 @@ import type { TabModeStore } from './mode-store';
 import type { RuntimeInjector } from './runtime-injector';
 import type { ExtensionMessage, ExtensionResponse } from './messages';
 
-export type StorageArea = {
+type StorageArea = {
   get(keys?: string | string[] | null): Promise<Record<string, unknown>>;
   set(items: Record<string, unknown>): Promise<void>;
   remove(keys: string | string[]): Promise<void>;
@@ -377,8 +377,3 @@ export function createBackgroundController(deps: BackgroundControllerDeps) {
   };
 }
 
-export const __testing = {
-  LOGGED_OUT_TTL_MS,
-  LOGGED_OUT_STORAGE_KEY,
-  GLOBAL_ENABLED_STORAGE_KEY,
-};
