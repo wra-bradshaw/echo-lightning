@@ -51,7 +51,7 @@ function isAuthenticationError(error: unknown): boolean {
   return error instanceof AuthenticationError;
 }
 
-export function AuthRequiredState() {
+function AuthRequiredState() {
   const router = useRouter();
   const current = (() => {
     try {
