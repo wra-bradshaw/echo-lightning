@@ -6,6 +6,7 @@ import { createLightningRuntime } from '../app/runtime';
 import { syncOuterTheme } from '../app/theme';
 import { createBrowserStorageAdapter } from '../features/settings/store';
 import { isEchoHost } from '../integrations/echo';
+import { isEchoAuthUrl } from '../integrations/echo/routing/routes';
 import { createPageFetch } from '../integrations/echo/transport/page-fetch';
 import { isLoggedOutFromDOM } from '../platform/browser/auth-detector';
 import type { ExtensionResponse } from '../platform/extension/messages';
@@ -20,7 +21,7 @@ export default defineContentScript({
   runAt: 'document_start',
   cssInjectionMode: 'ui',
   async main(ctx) {
-    if (!isEchoHost(location.hostname)) return;
+    if (!isEchoHost(location.hostname) || isEchoAuthUrl(location.href)) return;
     if (document.getElementById('echo-lightning-host') || document.documentElement.hasAttribute(MOUNTING_ATTRIBUTE))
       return;
     document.documentElement.setAttribute(MOUNTING_ATTRIBUTE, '');
