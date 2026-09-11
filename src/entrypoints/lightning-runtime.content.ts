@@ -12,13 +12,19 @@ import type { ExtensionResponse } from '../platform/extension/messages';
 
 type Runtime = { sendMessage: (message: unknown) => Promise<ExtensionResponse> };
 
+const MOUNTING_ATTRIBUTE = 'data-echo-lightning-mounting';
+
 export default defineContentScript({
   matches: ['*://*.echo360.net.au/*'],
   registration: 'runtime',
   runAt: 'document_start',
   cssInjectionMode: 'ui',
   async main(ctx) {
-    if (!isEchoHost(location.hostname) || document.getElementById('echo-lightning-host')) return;
+    if (!isEchoHost(location.hostname)) return;
+    if (document.getElementById('echo-lightning-host') || document.documentElement.hasAttribute(MOUNTING_ATTRIBUTE))
+      return;
+    document.documentElement.setAttribute(MOUNTING_ATTRIBUTE, '');
+    const releaseMountingClaim = () => document.documentElement.removeAttribute(MOUNTING_ATTRIBUTE);
     const runtimeApi = browser.runtime as unknown as Runtime;
     let globallyDisabled = false;
     try {
@@ -54,10 +60,14 @@ export default defineContentScript({
     } catch {
       void 0;
     }
-    if (globallyDisabled) return;
+    if (globallyDisabled) {
+      releaseMountingClaim();
+      return;
+    }
     try {
       if (isLoggedOutFromDOM(document)) {
         void runtimeApi.sendMessage({ type: 'reportLoggedOut', url: location.href }).catch(() => undefined);
+        releaseMountingClaim();
         return;
       }
     } catch {
@@ -89,6 +99,7 @@ export default defineContentScript({
     app.id = 'lightning-app';
     shadow.append(app);
     (document.documentElement || document.body).append(host);
+    releaseMountingClaim();
     syncOuterTheme(isDark);
     const lightning = createLightningRuntime({
       window,
