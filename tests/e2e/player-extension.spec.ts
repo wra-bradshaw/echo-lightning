@@ -146,6 +146,8 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await volumeThumb.focus();
   await expect(volumeThumb).toBeFocused();
   await expect(player.getByTestId('player-volume-value')).toHaveText('1000%');
+  await page.mouse.click(volumeTrackBox.x + volumeTrackBox.width / 2, volumeTrackBox.y + volumeTrackBox.height / 2);
+  await expect(player.getByTestId('player-volume-value')).toHaveText('100%');
   await player.press('m');
   await expect
     .poll(() =>
