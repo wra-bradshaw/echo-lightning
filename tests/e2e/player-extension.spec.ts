@@ -142,10 +142,10 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   const volumeTrackBox = await volumeTrack.boundingBox();
   if (!volumeTrackBox) throw new Error('Volume slider track is not measurable');
   await page.mouse.click(volumeTrackBox.x + volumeTrackBox.width - 1, volumeTrackBox.y + volumeTrackBox.height / 2);
-  await expect(player.getByTestId('player-volume-value')).toHaveText('500%');
+  await expect(player.getByTestId('player-volume-value')).toHaveText('1000%');
   await volumeThumb.focus();
   await expect(volumeThumb).toBeFocused();
-  await expect(player.getByTestId('player-volume-value')).toHaveText('500%');
+  await expect(player.getByTestId('player-volume-value')).toHaveText('1000%');
   await player.press('m');
   await expect
     .poll(() =>

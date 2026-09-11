@@ -1,4 +1,4 @@
-export const MAX_PLAYER_VOLUME = 5;
+export const MAX_PLAYER_VOLUME = 10;
 export const PLAYER_VOLUME_SLIDER_STEP = 5;
 
 const MAX_SLIDER_VALUE = 100;

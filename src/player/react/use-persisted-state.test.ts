@@ -18,7 +18,7 @@ const cases: Case[] = [
     useHook: usePersistedVolume,
     defaultValue: 1,
     validValue: 2.5,
-    upperBound: 5,
+    upperBound: 10,
     lowerBound: 0,
   },
   {

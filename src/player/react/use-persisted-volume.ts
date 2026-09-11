@@ -1,6 +1,6 @@
 import { usePersistedState } from './use-persisted-state';
 
-const clampVolume = (volume: number): number => (Number.isFinite(volume) ? Math.min(5, Math.max(0, volume)) : 0);
+const clampVolume = (volume: number): number => (Number.isFinite(volume) ? Math.min(10, Math.max(0, volume)) : 0);
 
 export function usePersistedVolume(
   savedVolume: number | undefined,

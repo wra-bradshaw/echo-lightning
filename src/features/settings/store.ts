@@ -50,7 +50,7 @@ export const SETTINGS_STORAGE_KEY = 'lightning.settings';
 
 const validRecord = <T>(schema: z.ZodType<T>) => z.record(z.string().min(1), schema);
 const playbackRateSchema = z.number().finite().min(0.25).max(10);
-const volumeSchema = z.number().finite().min(0).max(5);
+const volumeSchema = z.number().finite().min(0).max(10);
 const pipSizeSchema = z.object({
   width: z.number().finite().min(100).max(800),
   height: z.number().finite().min(50).max(500),
