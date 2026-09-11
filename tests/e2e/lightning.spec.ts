@@ -79,6 +79,59 @@ test('follows Echo history changes without a reload', async ({ page, serviceWork
   await setStockMode(serviceWorker, tabId);
 });
 
+test('keeps body containing only the lightning host', async ({ page, serviceWorker }) => {
+  await page.bringToFront();
+  const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await setReplacementMode(serviceWorker, tabId);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#echo-lightning-host')).toBeVisible();
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        count: document.body.children.length,
+        onlyHost: document.body.children.length === 1 && document.body.children[0]?.id === 'echo-lightning-host',
+      })),
+    )
+    .toEqual({ count: 1, onlyHost: true });
+
+  await page.evaluate(() => {
+    const stockRoot = document.createElement('div');
+    stockRoot.id = 'echo-app-root';
+    const stockVideo = document.createElement('video');
+    stockVideo.id = 'stock-echo-video';
+    stockVideo.src = 'https://content.example.test/stock.m3u8';
+    stockRoot.append(stockVideo);
+    document.body.append(stockRoot);
+    const bundle = document.createElement('script');
+    bundle.src = 'https://echo360.net.au/static/js/classroom.e2e-test.js';
+    document.head.append(bundle);
+  });
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        count: document.body.children.length,
+        onlyHost: document.body.children.length === 1 && document.body.children[0]?.id === 'echo-lightning-host',
+        stockGone: document.getElementById('stock-echo-video') === null,
+        bundleGone: document.head.querySelector('script[src*="classroom.e2e-test.js"]') === null,
+      })),
+    )
+    .toEqual({ count: 1, onlyHost: true, stockGone: true, bundleGone: true });
+
+  await page.locator('#echo-lightning-host').press('Space');
+  await expect
+    .poll(() =>
+      page.evaluate(() => ({
+        count: document.body.children.length,
+        onlyHost: document.body.children.length === 1 && document.body.children[0]?.id === 'echo-lightning-host',
+      })),
+    )
+    .toEqual({ count: 1, onlyHost: true });
+
+  await setStockMode(serviceWorker, tabId);
+});
+
 test('leaves authenticated login routes in stock mode', async ({ page, serviceWorker }) => {
   await page.route('https://login.echo360.net.au/login', (route) =>
     route.fulfill({
