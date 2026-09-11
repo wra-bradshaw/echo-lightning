@@ -13,6 +13,7 @@ import {
 export type ControlVisibilityOptions = {
   isPlaying: boolean;
   timeoutMs?: number;
+  holdVisible?: boolean;
 };
 
 export type ControlVisibility = {
@@ -25,7 +26,11 @@ export type ControlVisibility = {
   onBlurCapture: FocusEventHandler<HTMLElement>;
 };
 
-export function useControlVisibility({ isPlaying, timeoutMs = 2000 }: ControlVisibilityOptions): ControlVisibility {
+export function useControlVisibility({
+  isPlaying,
+  timeoutMs = 2000,
+  holdVisible = false,
+}: ControlVisibilityOptions): ControlVisibility {
   const [visible, setVisible] = useState(true);
   const timerRef = useRef<number | null>(null);
 
@@ -38,9 +43,9 @@ export function useControlVisibility({ isPlaying, timeoutMs = 2000 }: ControlVis
 
   const scheduleHide = useCallback(() => {
     clearTimer();
-    if (!isPlaying) return;
+    if (!isPlaying || holdVisible) return;
     timerRef.current = window.setTimeout(() => setVisible(false), timeoutMs);
-  }, [clearTimer, isPlaying, timeoutMs]);
+  }, [clearTimer, holdVisible, isPlaying, timeoutMs]);
 
   const showAndSchedule = useCallback(() => {
     setVisible(true);
@@ -48,7 +53,7 @@ export function useControlVisibility({ isPlaying, timeoutMs = 2000 }: ControlVis
   }, [scheduleHide]);
 
   useLayoutEffect(() => {
-    if (!isPlaying) {
+    if (!isPlaying || holdVisible) {
       clearTimer();
       setVisible(true);
       return;
@@ -56,7 +61,7 @@ export function useControlVisibility({ isPlaying, timeoutMs = 2000 }: ControlVis
     setVisible(true);
     scheduleHide();
     return clearTimer;
-  }, [clearTimer, isPlaying, scheduleHide]);
+  }, [clearTimer, holdVisible, isPlaying, scheduleHide]);
 
   useLayoutEffect(() => clearTimer, [clearTimer]);
 

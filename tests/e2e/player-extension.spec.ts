@@ -177,7 +177,129 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await player.press(',');
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await player.press('k');
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+
+  await setStockMode(serviceWorker, tabId);
+});
+
+test('keeps controls visible while holding the volume slider', async ({ page, serviceWorker }) => {
+  await page.route('**/user/enrollments', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: [
+          {
+            userSections: [
+              {
+                sectionId: 'section-hold',
+                sectionName: 'Test Section',
+                courseId: 'course-hold',
+                courseCode: 'TEST101',
+                courseName: 'Test Course',
+                lessonCount: 1,
+                termId: 'term-hold',
+              },
+            ],
+            termsById: {
+              'term-hold': { id: 'term-hold', name: '2026_SM1', startDate: '2026-01-01', isActiveOrFuture: true },
+            },
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route('**/section/section-hold/syllabus', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: [
+          {
+            type: 'SyllabusLessonType',
+            lesson: {
+              lesson: {
+                id: 'lesson-hold',
+                sectionId: 'section-hold',
+                displayName: 'Lecture Hold',
+                timing: { start: '2026-03-03T15:05:00.000', end: '2026-03-03T16:00:00.000' },
+              },
+              medias: [{ id: 'media-hold', title: 'Lecture Hold', isAvailable: true, isAudioOnly: false }],
+            },
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route('**/api/ui/echoplayer/lessons/lesson-hold/media/media-hold/player-properties', (route) =>
+    route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        status: 'ok',
+        data: {
+          mediaId: 'media-hold',
+          mediaName: 'Lecture Hold',
+          captions: 'https://content.example.test/captions.vtt',
+          lastPlayedToSeconds: 125,
+          playableAudioVideo: {
+            duration: 'PT600S',
+            mediaId: 'media-hold',
+            playableMedias: [
+              {
+                sourceIndex: 0,
+                trackType: ['Audio', 'Video'],
+                uri: 'https://content.example.test/camera-1.m3u8',
+                isHls: true,
+              },
+              {
+                sourceIndex: 1,
+                trackType: ['Audio', 'Video'],
+                uri: 'https://content.example.test/camera-2.m3u8',
+                isHls: true,
+              },
+            ],
+          },
+        },
+      }),
+    }),
+  );
+  await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
+
+  await page.bringToFront();
+  const tabId = await tabIdForUrl(serviceWorker, page.url());
+  await clearExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
+  await setReplacementMode(serviceWorker, tabId);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    history.pushState(null, '', '/lesson/lesson-hold/classroom');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  });
+
+  const player = page.getByTestId('classroom-player');
+  await expect(player).toBeVisible();
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  const bottomControls = player.getByTestId('player-bottom-controls');
+
+  await player.evaluate(() => {
+    document.body.tabIndex = -1;
+    (document.activeElement as HTMLElement | null)?.blur();
+    document.body.focus();
+  });
+  await page.waitForTimeout(2600);
+  await expect(bottomControls).toHaveAttribute('data-visible', 'false');
+
+  const thumb = player.getByTestId('player-volume-slider').locator('[data-slot="slider-thumb"]');
+  const thumbBox = await thumb.boundingBox();
+  if (!thumbBox) throw new Error('Volume slider thumb is not measurable');
+  await page.mouse.move(thumbBox.x + thumbBox.width / 2, thumbBox.y + thumbBox.height / 2);
+  await expect(bottomControls).toHaveAttribute('data-visible', 'true');
+  await page.mouse.down();
+  await page.waitForTimeout(2600);
+  await expect(bottomControls).toHaveAttribute('data-visible', 'true');
+
+  await page.mouse.up();
+  await page.waitForTimeout(2600);
+  await expect(bottomControls).toHaveAttribute('data-visible', 'false');
 
   await setStockMode(serviceWorker, tabId);
 });

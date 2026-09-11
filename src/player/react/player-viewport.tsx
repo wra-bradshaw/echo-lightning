@@ -15,6 +15,7 @@ import { Link } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { usePipDrag } from './use-pip-drag';
 import { useEscapeKey } from '../../shared/hooks/use-escape-key';
+import { usePointerHeld } from '../../shared/hooks/use-pointer-held';
 import { usePipResize } from './use-pip-resize';
 import { getPipHeight, getPipMaxWidth, PIP_MIN_HEIGHT, PIP_MIN_WIDTH } from '../core/pip-constants';
 import type { EchoGateway, PlayerProperties, PlayerSource, SyllabusItem } from '../../domain';
@@ -155,7 +156,8 @@ export function PlayerViewport({ gateway, lesson, properties, sectionId, setting
     },
     [sizeRef],
   );
-  const controls = useControlVisibility({ isPlaying });
+  const isPointerHeld = usePointerHeld(playerRef);
+  const controls = useControlVisibility({ isPlaying, holdVisible: isPointerHeld });
   const activeSources = useMemo(() => sourceById(sources, state.selectedIds), [sources, state.selectedIds]);
   const mainSource = sources.find((source) => source.id === state.mainId) ?? activeSources[0];
   const leader = videoElements[state.mode === 'focus' ? state.mainId : state.audioId] ?? null;

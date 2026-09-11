@@ -115,4 +115,45 @@ describe('useControlVisibility', () => {
     rerender({ isPlaying: false });
     expect(result.current.visible).toBe(true);
   });
+
+  it('keeps controls visible while a drag is held without movement', async () => {
+    const { result } = renderHook(() => useControlVisibility({ isPlaying: true, timeoutMs: 2000, holdVisible: true }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(result.current.visible).toBe(true);
+  });
+
+  it('resumes the hide timer after the hold is released', async () => {
+    const { result, rerender } = renderHook(
+      ({ holdVisible }) => useControlVisibility({ isPlaying: true, timeoutMs: 2000, holdVisible }),
+      { initialProps: { holdVisible: true } },
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(result.current.visible).toBe(true);
+    rerender({ holdVisible: false });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1999);
+    });
+    expect(result.current.visible).toBe(true);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(result.current.visible).toBe(false);
+  });
+
+  it('reveals controls when a hold starts after hide', async () => {
+    const { result, rerender } = renderHook(
+      ({ holdVisible }) => useControlVisibility({ isPlaying: true, timeoutMs: 2000, holdVisible }),
+      { initialProps: { holdVisible: false } },
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(result.current.visible).toBe(false);
+    rerender({ holdVisible: true });
+    expect(result.current.visible).toBe(true);
+  });
 });
