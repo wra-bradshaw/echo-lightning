@@ -18,6 +18,7 @@ test('keeps stock Echo untouched while Lightning is inactive', async ({ page }) 
 
 test('mounts the authenticated debug overlay without replacement rules', async ({ page, serviceWorker }) => {
   await page.bringToFront();
+  await page.goto(`${new URL(page.url()).origin}/dashboard`, { waitUntil: 'domcontentloaded' });
   const tabId = await tabIdForUrl(serviceWorker, page.url());
   await setStockMode(serviceWorker, tabId);
   await page.reload({ waitUntil: 'domcontentloaded' });
