@@ -80,6 +80,12 @@ test('follows Echo history changes without a reload', async ({ page, serviceWork
 });
 
 test('leaves authenticated login routes in stock mode', async ({ page, serviceWorker }) => {
+  await page.route('https://login.echo360.net.au/login', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><html><body><div id="login-app"><form action="/login"><input id="email"></form></div></body></html>',
+    }),
+  );
   const tabId = await tabIdForUrl(serviceWorker, page.url());
   await setReplacementMode(serviceWorker, tabId);
   await page.goto('https://login.echo360.net.au/login', { waitUntil: 'domcontentloaded' });
