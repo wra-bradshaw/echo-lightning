@@ -9,6 +9,8 @@ import { isEchoHost } from '../integrations/echo';
 import { isEchoAuthUrl } from '../integrations/echo/routing/routes';
 import { createPageFetch } from '../integrations/echo/transport/page-fetch';
 import { isLoggedOutFromDOM } from '../platform/browser/auth-detector';
+import { createHostContainer } from '../platform/browser/host-container';
+import { installBodyTakeover } from '../platform/browser/body-takeover';
 import type { ExtensionResponse } from '../platform/extension/messages';
 
 type Runtime = { sendMessage: (message: unknown) => Promise<ExtensionResponse> };
@@ -74,6 +76,24 @@ export default defineContentScript({
     } catch {
       void 0;
     }
+    const takeover = installBodyTakeover(document, { stripHead: true });
+    if (!document.body) {
+      await new Promise<void>((resolve) => {
+        const observer = new MutationObserver(() => {
+          if (document.body) {
+            observer.disconnect();
+            resolve();
+          }
+        });
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        requestAnimationFrame(() => {
+          if (document.body) {
+            observer.disconnect();
+            resolve();
+          }
+        });
+      });
+    }
     await injectScript('/history-bridge.js').catch((error) => console.warn('Unable to install history bridge.', error));
     await injectScript('/api-bridge.js').catch((error) => console.warn('Unable to install API bridge.', error));
     const isDark =
@@ -81,17 +101,7 @@ export default defineContentScript({
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches;
     syncOuterTheme(isDark);
-    const host = document.createElement('div');
-    host.id = 'echo-lightning-host';
-    host.dataset.echoLightning = 'true';
-    Object.assign(host.style, {
-      position: 'fixed',
-      inset: '0',
-      zIndex: '2147483647',
-      pointerEvents: 'auto',
-      backgroundColor: 'hsl(var(--lightning-bg))',
-      overflow: 'auto',
-    });
+    const host = createHostContainer(document);
     const shadow = host.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
     style.textContent = styles;
@@ -99,7 +109,7 @@ export default defineContentScript({
     const app = document.createElement('div');
     app.id = 'lightning-app';
     shadow.append(app);
-    (document.documentElement || document.body).append(host);
+    document.body.append(host);
     releaseMountingClaim();
     syncOuterTheme(isDark);
     const lightning = createLightningRuntime({
@@ -107,7 +117,10 @@ export default defineContentScript({
       sendMessage: (message) => runtimeApi.sendMessage(message),
       fetcher: createPageFetch(window),
       settingsStorage: createBrowserStorageAdapter(browser.storage.local),
-      cleanup: () => host.remove(),
+      cleanup: () => {
+        takeover.dispose();
+        host.remove();
+      },
     });
     lightning.mount(app);
     const handlePageHide = () => lightning?.dispose();
@@ -117,6 +130,7 @@ export default defineContentScript({
       document.getElementById('echo-lightning-takeover')?.remove();
       document.getElementById('lightning-takeover')?.remove();
       lightning?.dispose();
+      takeover.dispose();
       host.remove();
     });
   },
