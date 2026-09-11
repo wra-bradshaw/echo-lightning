@@ -27,7 +27,7 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
         border: getComputedStyle(app).getPropertyValue('--border').trim(),
       })),
     )
-    .toEqual({ background: '0 0% 7%', card: '0 0% 11%', border: '0 0% 24%' });
+    .toEqual({ background: '0 0% 7%', card: '0 0% 11%', border: '0 0% 38%' });
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('#lightning-app:not(.dark)')).toBeVisible();
   await expect
