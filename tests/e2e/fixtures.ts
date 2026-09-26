@@ -23,8 +23,8 @@ const AUTH_STATE_LOCK_RETRY = 250;
 
 type TestFixtures = {
   context: BrowserContext;
-  extensionId: string;
-  serviceWorker: Worker;
+  extensionId: string | undefined;
+  serviceWorker: Worker | undefined;
   driver: ExtensionDriver;
 };
 
@@ -315,7 +315,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   serviceWorker: async ({ authenticatedContext }, use) => {
     if (e2eBrowser() === 'firefox') {
-      throw new Error('Firefox exposes no service worker to Playwright; use the driver fixture instead.');
+      await use(undefined);
+      return;
     }
     let [serviceWorker] = authenticatedContext.serviceWorkers();
     if (!serviceWorker) {
@@ -338,7 +339,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
 
   extensionId: async ({ serviceWorker }, use) => {
-    const extensionId = new URL(serviceWorker.url()).hostname;
+    const extensionId = serviceWorker ? new URL(serviceWorker.url()).hostname : undefined;
     await use(extensionId);
   },
 });

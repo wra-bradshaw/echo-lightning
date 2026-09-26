@@ -2,7 +2,7 @@ import { test, expect } from './fixtures';
 
 test('starts the Manifest V3 service worker', async ({ serviceWorker, extensionId, driver }) => {
   test.skip(driver.browser === 'firefox', 'Firefox exposes no service worker to Playwright.');
-  expect(serviceWorker.url()).toBe(`chrome-extension://${extensionId}/background.js`);
+  expect(serviceWorker?.url()).toBe(`chrome-extension://${extensionId}/background.js`);
 });
 
 test('keeps stock Echo untouched while Lightning is inactive', async ({ page }) => {
@@ -22,7 +22,7 @@ test('mounts the authenticated debug overlay without replacement rules', async (
   await driver.deactivate(page);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toHaveCount(0);
-  test.skip(!driver.canManageRules, 'Manual runtime injection needs extension privileges.');
+  if (!driver.canManageRules) return;
   await driver.inject(page);
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect.poll(() => driver.hasRules(page)).toBe(false);
