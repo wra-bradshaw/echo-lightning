@@ -6,14 +6,21 @@ export default defineConfig({
   srcDir: 'src',
   imports: false,
   modules: ['@wxt-dev/module-react'],
-  manifest: {
+  manifest: ({ browser }) => ({
     action: { default_title: 'Enable Echo360 Lightning' },
     permissions: ['declarativeNetRequestWithHostAccess', 'scripting', 'storage', 'tabs'],
     host_permissions: ['*://*.echo360.net.au/*'],
     web_accessible_resources: [
       { resources: ['history-bridge.js', 'api-bridge.js', 'player-runtime.js'], matches: ['*://*.echo360.net.au/*'] },
     ],
-  },
+    ...(browser === 'firefox'
+      ? {
+          browser_specific_settings: {
+            gecko: { id: 'echo360-lightning@example.com' },
+          },
+        }
+      : {}),
+  }),
   vite: () => ({
     plugins: [tailwindcss()],
   }),
