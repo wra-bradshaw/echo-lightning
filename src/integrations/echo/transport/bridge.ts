@@ -4,6 +4,7 @@ import {
   type PageFetchRequest,
   type PageFetchResponse,
 } from './page-fetch-events';
+import { headersToPairs } from '../../../platform/browser/headers';
 
 function sendResponse(target: Window, response: PageFetchResponse): void {
   target.document.dispatchEvent(new CustomEvent(PAGE_FETCH_RESPONSE_EVENT, { detail: JSON.stringify(response) }));
@@ -49,7 +50,7 @@ export function installPageFetchBridge(target: Window = window): void {
         sendResponse(target, {
           id: request.id,
           status: response.status,
-          headers: Array.from(response.headers.entries()),
+          headers: headersToPairs(response.headers),
           body: await response.text(),
         });
       } catch (error) {

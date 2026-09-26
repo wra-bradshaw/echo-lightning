@@ -4,6 +4,7 @@ import {
   type PageFetchRequest,
   type PageFetchResponse,
 } from './page-fetch-events';
+import { headersToPairs } from '../../../platform/browser/headers';
 
 let requestSequence = 0;
 
@@ -32,7 +33,7 @@ export function createPageFetch(target: Window = window): typeof fetch {
       id,
       url: request.url,
       method: request.method,
-      headers: Array.from(request.headers.entries()),
+      headers: headersToPairs(request.headers),
       ...(body === undefined ? {} : { body }),
       ...(keepalive ? { keepalive: true } : {}),
     };

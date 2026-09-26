@@ -9,6 +9,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { EchoGateway } from '../domain';
 import type { LightningSettingsStore } from '../features/settings';
 import { rewriteEchoInput, rewriteEchoOutput } from '../integrations/echo/routing/routes';
+import { parseQueryString, stringifyQueryString } from '../platform/browser/query-string';
 import { AppShell } from './app-shell';
 import { ClassroomPage, CourseDetailsPage, CoursesPage, SectionPage } from './pages';
 import {
@@ -80,6 +81,8 @@ export function createLightningRouter(options: {
       settingsStore: options.settingsStore,
     },
     rewrite: { input: rewriteEchoInput, output: rewriteEchoOutput },
+    parseSearch: parseQueryString,
+    stringifySearch: stringifyQueryString,
     defaultNotFoundComponent: UnsupportedPage,
     defaultPreload: 'intent',
   });
