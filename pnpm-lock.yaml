@@ -108,6 +108,9 @@ importers:
       knip:
         specifier: ^6.34.0
         version: 6.34.0
+      playwright-webextext:
+        specifier: ^0.0.5
+        version: 0.0.5(@playwright/test@1.62.1)(playwright@1.62.1)
       prettier:
         specifier: ^3.9.6
         version: 3.9.6
@@ -3665,6 +3668,18 @@ packages:
   playwright-core@1.62.1:
     resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
     engines: {node: '>=20'}
+
+  playwright-webextext@0.0.5:
+    resolution: {integrity: sha512-PhlMiWOfP8UmYTAbzR7uv09Twz+bkLqsgz/8EVcZROq7C6hgepJFYHD+pw4qFLK8mVGNv88N82yTdRdJDDgtdw==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@playwright/test': '>=1.0.0'
+      playwright: '>=1.0.0'
+    peerDependenciesMeta:
+      '@playwright/test':
+        optional: true
+      playwright:
+        optional: true
 
   playwright@1.62.1:
     resolution: {integrity: sha512-0M+L3LAD8/nm554LOla9Ayx0j0tmFZ0FBcoQ7F1VuVHpM/XpiC8RcDzBQB8W5+hA8L22THxELzeF+2WcUzvcLg==}
@@ -8374,6 +8389,11 @@ snapshots:
       find-up: 3.0.0
 
   playwright-core@1.62.1: {}
+
+  playwright-webextext@0.0.5(@playwright/test@1.62.1)(playwright@1.62.1):
+    optionalDependencies:
+      '@playwright/test': 1.62.1
+      playwright: 1.62.1
 
   playwright@1.62.1:
     dependencies:
