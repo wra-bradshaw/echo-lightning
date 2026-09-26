@@ -1,12 +1,16 @@
-import { test as base, chromium, type BrowserContext, type Worker } from '@playwright/test';
-import { chmod, mkdir, open, readFile, stat, unlink } from 'node:fs/promises';
+import { test as base, chromium, firefox, type BrowserContext, type Worker } from '@playwright/test';
+import { mkdtemp, chmod, mkdir, open, readFile, rm, stat, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { withExtension } from 'playwright-webextext';
 import { authenticateEcho360 } from './echo360-auth';
+import { e2eBrowser, extensionOutputDir } from './browser-env';
+import { createDriver, type ExtensionDriver } from './extension-driver';
 import { isEchoUrl } from '../../src/integrations/echo/routing/url';
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
-const pathToExtension = path.resolve(projectRoot, '../../.output/chrome-mv3');
+const pathToExtension = extensionOutputDir(e2eBrowser());
 const repositoryRoot = path.resolve(projectRoot, '../..');
 const authStatePath = path.resolve(
   repositoryRoot,
@@ -21,6 +25,7 @@ type TestFixtures = {
   context: BrowserContext;
   extensionId: string;
   serviceWorker: Worker;
+  driver: ExtensionDriver;
 };
 
 type WorkerFixtures = {
@@ -101,7 +106,7 @@ async function applyStorageState(context: BrowserContext, storageState: StorageS
   }
 }
 
-async function createAuthenticatedContext(): Promise<{
+async function createAuthenticatedContext(browser: 'chromium' | 'firefox'): Promise<{
   context: BrowserContext;
   authPage: import('@playwright/test').Page;
 }> {
@@ -109,10 +114,16 @@ async function createAuthenticatedContext(): Promise<{
   let context: BrowserContext | undefined;
   try {
     const storageState = await readAuthState();
-    context = await chromium.launchPersistentContext('', {
-      channel: 'chromium',
-      headless: process.env.HEADED !== '1',
-    });
+    if (browser === 'firefox') {
+      context = await firefox.launchPersistentContext('', {
+        headless: process.env.HEADED !== '1',
+      });
+    } else {
+      context = await chromium.launchPersistentContext('', {
+        channel: 'chromium',
+        headless: process.env.HEADED !== '1',
+      });
+    }
     await applyStorageState(context, storageState);
     const authPage = await context.newPage();
     if (!storageState || !(await hasValidAuth(authPage))) {
@@ -237,7 +248,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   cleanAuthenticatedContext: [
     async ({ browser: browserFixture }, use) => {
       void browserFixture;
-      const { context, authPage } = await createAuthenticatedContext();
+      const { context, authPage } = await createAuthenticatedContext(e2eBrowser());
       try {
         await use(context);
       } finally {
@@ -252,6 +263,10 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   // context is created. Lightning is never active during the SSO redirect.
   authenticatedContext: [
     async ({ cleanAuthenticatedContext }, use) => {
+      if (e2eBrowser() === 'firefox') {
+        await use(cleanAuthenticatedContext);
+        return;
+      }
       const storageState = await cleanAuthenticatedContext.storageState();
       const context = await chromium.launchPersistentContext('', {
         channel: 'chromium',
@@ -268,10 +283,27 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     { scope: 'worker' },
   ],
 
-  context: async ({ authenticatedContext }, use) => use(authenticatedContext),
+  context: async ({ authenticatedContext, cleanAuthenticatedContext }, use) => {
+    if (e2eBrowser() === 'firefox') {
+      const storageState = await cleanAuthenticatedContext.storageState();
+      const userDataDir = await mkdtemp(path.join(tmpdir(), 'echo360-firefox-'));
+      const context = await withExtension(firefox, pathToExtension).launchPersistentContext(userDataDir, {
+        headless: process.env.HEADED !== '1',
+      });
+      try {
+        await applyStorageState(context, storageState);
+        await use(context);
+      } finally {
+        await context.close();
+        await rm(userDataDir, { recursive: true, force: true });
+      }
+      return;
+    }
+    await use(authenticatedContext);
+  },
 
-  page: async ({ authenticatedContext }, use) => {
-    const page = await authenticatedContext.newPage();
+  page: async ({ context }, use) => {
+    const page = await context.newPage();
     const baseUrl = process.env.ECHO360_BASE_URL?.trim() || 'https://echo360.net.au';
     try {
       await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -282,12 +314,27 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   },
 
   serviceWorker: async ({ authenticatedContext }, use) => {
+    if (e2eBrowser() === 'firefox') {
+      throw new Error('Firefox exposes no service worker to Playwright; use the driver fixture instead.');
+    }
     let [serviceWorker] = authenticatedContext.serviceWorkers();
     if (!serviceWorker) {
       serviceWorker = await authenticatedContext.waitForEvent('serviceworker');
     }
 
     await use(serviceWorker);
+  },
+
+  driver: async ({ authenticatedContext }, use) => {
+    if (e2eBrowser() === 'firefox') {
+      await use(createDriver('firefox'));
+      return;
+    }
+    let [serviceWorker] = authenticatedContext.serviceWorkers();
+    if (!serviceWorker) {
+      serviceWorker = await authenticatedContext.waitForEvent('serviceworker');
+    }
+    await use(createDriver('chromium', serviceWorker));
   },
 
   extensionId: async ({ serviceWorker }, use) => {

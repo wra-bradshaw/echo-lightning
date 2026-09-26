@@ -1,8 +1,7 @@
 import { expect, test } from './fixtures';
-import { clearExtensionLocalStorage, setReplacementMode, setStockMode, tabIdForUrl } from './extension-helpers';
 import { SETTINGS_STORAGE_KEY } from '../../src/features/settings';
 
-test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => {
+test('matches YouTube video-player hotkeys', async ({ page, driver }) => {
   await page.route('**/user/enrollments', (route) =>
     route.fulfill({
       contentType: 'application/json',
@@ -86,10 +85,8 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
 
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await clearExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.clearStorage(page, SETTINGS_STORAGE_KEY);
+  await driver.activate(page);
   await page.evaluate(() => {
     history.pushState(null, '', '/lesson/lesson-hotkeys/classroom');
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -181,10 +178,10 @@ test('matches YouTube video-player hotkeys', async ({ page, serviceWorker }) => 
   await player.press('k');
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 
-  await setStockMode(serviceWorker, tabId);
+  await driver.deactivate(page);
 });
 
-test('keeps controls visible while holding the volume slider', async ({ page, serviceWorker }) => {
+test('keeps controls visible while holding the volume slider', async ({ page, driver }) => {
   await page.route('**/user/enrollments', (route) =>
     route.fulfill({
       contentType: 'application/json',
@@ -268,10 +265,8 @@ test('keeps controls visible while holding the volume slider', async ({ page, se
   await page.route('https://content.example.test/**', (route) => route.fulfill({ status: 200, body: '' }));
 
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await clearExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.clearStorage(page, SETTINGS_STORAGE_KEY);
+  await driver.activate(page);
   await page.evaluate(() => {
     history.pushState(null, '', '/lesson/lesson-hold/classroom');
     window.dispatchEvent(new PopStateEvent('popstate'));
@@ -303,5 +298,5 @@ test('keeps controls visible while holding the volume slider', async ({ page, se
   await page.waitForTimeout(2600);
   await expect(bottomControls).toHaveAttribute('data-visible', 'false');
 
-  await setStockMode(serviceWorker, tabId);
+  await driver.deactivate(page);
 });

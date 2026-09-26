@@ -26,6 +26,7 @@
     "test:watch": "vitest",
     "test:e2e:discovery": "pnpm run build && pnpm exec playwright test --project=discovery",
     "test:e2e:extension": "pnpm run build && pnpm exec playwright test --project=extension",
+    "test:e2e:firefox": "pnpm run build:firefox && E2E_BROWSER=firefox pnpm exec playwright test --project=extension",
     "debug:app": "node --experimental-strip-types .agents/skills/debug-authenticated-app/scripts/debug-app.ts",
     "check": "pnpm format:check && pnpm lint && tsc --noEmit && knip && pnpm test && pnpm build",
     "test:e2e": "pnpm run build && pnpm exec playwright test",

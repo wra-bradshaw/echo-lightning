@@ -1,18 +1,9 @@
 import { createMockEchoServer, expect, test } from './fixtures';
-import {
-  clearExtensionLocalStorage,
-  hasLightningRules,
-  readExtensionLocalStorage,
-  setReplacementMode,
-  setStockMode,
-  tabIdForUrl,
-} from './extension-helpers';
 import { SETTINGS_STORAGE_KEY } from '../../src/features/settings';
 
-test('mounts an isolated Lightning shell for active tab rules', async ({ page, serviceWorker }) => {
+test('mounts an isolated Lightning shell for active tab rules', async ({ page, driver }) => {
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await setReplacementMode(serviceWorker, tabId);
+  await driver.activate(page);
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
@@ -37,11 +28,9 @@ test('mounts an isolated Lightning shell for active tab rules', async ({ page, s
     .toBe('0 0% 98%');
 });
 
-test('returns home when the Lightning branding is clicked', async ({ page, serviceWorker }) => {
+test('returns home when the Lightning branding is clicked', async ({ page, driver }) => {
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.activate(page);
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
 
   await page.evaluate(() => history.pushState(null, '', '/section/home-link-test/home'));
@@ -50,40 +39,34 @@ test('returns home when the Lightning branding is clicked', async ({ page, servi
 
   await expect(page).toHaveURL(/\/courses$/);
   await expect(page.getByRole('heading', { name: 'Your courses' })).toBeVisible();
-  await setStockMode(serviceWorker, tabId);
+  await driver.deactivate(page);
 });
 
-test('Use original Echo UI removes the tab-scoped rules', async ({ page, serviceWorker }) => {
+test('Use original Echo UI removes the tab-scoped rules', async ({ page, driver }) => {
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.activate(page);
   await page
     .getByRole('button', { name: /Use original Echo UI/ })
     .first()
     .click();
-  await expect.poll(() => hasLightningRules(serviceWorker, tabId)).toBe(false);
-  await setStockMode(serviceWorker, tabId);
+  await expect.poll(() => driver.hasRules(page)).toBe(false);
+  await driver.deactivate(page);
 });
 
-test('follows Echo history changes without a reload', async ({ page, serviceWorker }) => {
+test('follows Echo history changes without a reload', async ({ page, driver }) => {
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.activate(page);
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByText('Lightning active')).toHaveCount(0);
   await page.evaluate(() => history.pushState(null, '', '/section/history-test/home'));
   await expect(page.getByRole('heading', { name: 'Course recordings' })).toBeVisible();
 
-  await setStockMode(serviceWorker, tabId);
+  await driver.deactivate(page);
 });
 
-test('keeps body containing only the lightning host', async ({ page, serviceWorker }) => {
+test('keeps body containing only the lightning host', async ({ page, driver }) => {
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.activate(page);
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
 
   await expect
@@ -129,41 +112,38 @@ test('keeps body containing only the lightning host', async ({ page, serviceWork
     )
     .toEqual({ count: 1, onlyHost: true });
 
-  await setStockMode(serviceWorker, tabId);
+  await driver.deactivate(page);
 });
 
-test('leaves authenticated login routes in stock mode', async ({ page, serviceWorker }) => {
+test('leaves authenticated login routes in stock mode', async ({ page, driver }) => {
   await page.route('https://login.echo360.net.au/login', (route) =>
     route.fulfill({
       contentType: 'text/html',
       body: '<!doctype html><html><body><div id="login-app"><form action="/login"><input id="email"></form></div></body></html>',
     }),
   );
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
-  await setReplacementMode(serviceWorker, tabId);
+  await driver.activate(page);
   await page.goto('https://login.echo360.net.au/login', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#echo-lightning-host')).toHaveCount(0);
-  await expect.poll(() => hasLightningRules(serviceWorker, tabId)).toBe(false);
-  await setStockMode(serviceWorker, tabId);
+  await expect.poll(() => driver.hasRules(page)).toBe(false);
+  await driver.deactivate(page);
 });
 
 test('plays a full-viewport multi-stream lecture with grid, focus, and per-section selection', async ({
   page,
-  serviceWorker,
+  driver,
 }) => {
   const { positionRequests } = await createMockEchoServer(page);
 
   await page.bringToFront();
-  const tabId = await tabIdForUrl(serviceWorker, page.url());
   const navigate = async (path: string) => {
     await page.evaluate((nextPath) => {
       history.pushState(null, '', nextPath);
       window.dispatchEvent(new PopStateEvent('popstate'));
     }, path);
   };
-  await clearExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
-  await setReplacementMode(serviceWorker, tabId);
-  await page.reload({ waitUntil: 'domcontentloaded' });
+  await driver.clearStorage(page, SETTINGS_STORAGE_KEY);
+  await driver.activate(page);
   await expect(page.locator('#echo-lightning-host')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Your courses' })).toBeVisible();
   await navigate('/section/section-current/home');
@@ -311,14 +291,19 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
   await expect(page).toHaveURL(/\/lesson\/lesson-one\/classroom/);
   await expect(page.getByTestId('classroom-player')).toHaveAttribute('data-mode', 'focus');
   await expect(page.getByTestId('classroom-player').getByTestId('main-stream')).toBeVisible();
-  const storedSettings = await readExtensionLocalStorage(serviceWorker, SETTINGS_STORAGE_KEY);
-  const storedValue = storedSettings[SETTINGS_STORAGE_KEY];
-  expect(typeof storedValue).toBe('string');
-  const parsedStored = JSON.parse(String(storedValue));
-  expect(parsedStored.state.selectedStreamIds['section-current']).toEqual(['camera-1', 'camera-2']);
-  expect(parsedStored.state.playerStateBySection['section-current']).toMatchObject({
-    mode: 'focus',
-  });
+  if (driver.canReadStorage) {
+    const storedSettings = await driver.readStorage(page, SETTINGS_STORAGE_KEY);
+    const storedValue = storedSettings[SETTINGS_STORAGE_KEY];
+    expect(typeof storedValue).toBe('string');
+    const parsedStored = JSON.parse(String(storedValue));
+    expect(parsedStored.state.selectedStreamIds['section-current']).toEqual(['camera-1', 'camera-2']);
+    expect(parsedStored.state.playerStateBySection['section-current']).toMatchObject({
+      mode: 'focus',
+    });
+  } else {
+    await expect(page.getByRole('button', { name: /Streams 2\/3/ })).toBeVisible();
+    await expect(page.getByTestId('classroom-player').getByTestId('camera-grid').locator('video')).toHaveCount(2);
+  }
 
-  await setStockMode(serviceWorker, tabId);
+  await driver.deactivate(page);
 });
