@@ -302,7 +302,7 @@ test('plays a full-viewport multi-stream lecture with grid, focus, and per-secti
     });
   } else {
     await expect(page.getByRole('button', { name: /Streams 2\/3/ })).toBeVisible();
-    await expect(page.getByTestId('classroom-player').getByTestId('camera-grid').locator('video')).toHaveCount(2);
+    await expect(player.locator('[data-testid="pip-stream"][data-stream-id="camera-2"]')).toHaveCount(1);
   }
 
   await driver.deactivate(page);
