@@ -176,7 +176,16 @@ test('matches YouTube video-player hotkeys', async ({ page, driver }) => {
   await player.press(',');
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await player.press('k');
-  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await player.press('k');
+  const seekFrom = await player
+    .locator('video')
+    .evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).currentTime));
+  await player.press('j');
+  await expect
+    .poll(() =>
+      player.locator('video').evaluateAll((videos) => videos.map((video) => (video as HTMLVideoElement).currentTime)),
+    )
+    .toEqual(seekFrom.map((time) => time - 10));
 
   await driver.deactivate(page);
 });
