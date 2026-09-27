@@ -11,6 +11,7 @@ import { createPageFetch } from '../integrations/echo/transport/page-fetch';
 import { isLoggedOutFromDOM } from '../platform/browser/auth-detector';
 import { createHostContainer } from '../platform/browser/host-container';
 import { installBodyTakeover } from '../platform/browser/body-takeover';
+import { ensureWebIdlIterators } from '../platform/browser/webidl-iterators';
 import type { ExtensionResponse } from '../platform/extension/messages';
 
 type Runtime = { sendMessage: (message: unknown) => Promise<ExtensionResponse> };
@@ -23,6 +24,7 @@ export default defineContentScript({
   runAt: 'document_start',
   cssInjectionMode: 'ui',
   async main(ctx) {
+    ensureWebIdlIterators();
     if (!isEchoHost(location.hostname) || isEchoAuthUrl(location.href)) return;
     if (document.getElementById('echo-lightning-host') || document.documentElement.hasAttribute(MOUNTING_ATTRIBUTE))
       return;
